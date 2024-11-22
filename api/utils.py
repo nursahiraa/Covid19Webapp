@@ -86,31 +86,57 @@ def preprocess_data(window_size=30, max_rows=1716):
     return scaled_data
 
 
-
-def predict_hybrid(window_size=30):
+def predict_with_hybrid_model(data):
     """
-    Predict the next day's cases using the hybrid (RF + LSTM) model.
-    :param window_size: Number of days to consider for the sliding window.
-    :return: Predicted cases for the next day (rescaled to original scale).
+    Predict future cases using the hybrid model (Random Forest + LSTM).
+    :param data: Preprocessed data (scaled and formatted for the models).
+    :return: Predicted cases (in original scale).
     """
-    # Preprocess data
-    scaled_data = preprocess_data(window_size)
+    # Ensure data is 2D for Random Forest
+    rf_input = data.reshape(1, -1)  # Flatten the data for RF
 
-    # Step 1: Predict with Random Forest
-    rf_input = scaled_data[-window_size:].flatten().reshape(1, -1)  # Flatten for RF input
-    rf_prediction = rf_model.predict(rf_input)[0]
+    # Predict with Random Forest
+    rf_predictions = rf_model.predict(rf_input)  # Returns a single prediction
 
-    # Step 2: Prepare LSTM input (cases_new + RF prediction)
-    lstm_input = np.concatenate((scaled_data[-window_size:], [[rf_prediction]]), axis=1)  # Add RF prediction
-    lstm_input = lstm_input.reshape(1, -1, 2)  # Shape: (1, timesteps, features)
+    # Prepare input for LSTM
+    # Append RF predictions as a new feature for LSTM
+    lstm_input = np.hstack([data[-30:].reshape(30, 1), np.full((30, 1), rf_predictions[0])])
+    lstm_input = lstm_input.reshape(1, 30, 2)  # Reshape to 3D for LSTM input
 
-    # Step 3: Predict with LSTM
-    lstm_prediction = lstm_model.predict(lstm_input)[0][0]
+    # Predict with LSTM
+    lstm_predictions = lstm_model.predict(lstm_input)
 
-    # Step 4: Rescale LSTM prediction back to original scale
-    lstm_prediction_rescaled = scaler.inverse_transform([[lstm_prediction]])[0][0]
+    # Convert scaled output back to the original scale
+    future_cases = scaler.inverse_transform(lstm_predictions)
 
-    return int(lstm_prediction_rescaled)
+    return future_cases.flatten()
+
+
+
+# def predict_hybrid(window_size=30):
+#     """
+#     Predict the next day's cases using the hybrid (RF + LSTM) model.
+#     :param window_size: Number of days to consider for the sliding window.
+#     :return: Predicted cases for the next day (rescaled to original scale).
+#     """
+#     # Preprocess data
+#     scaled_data = preprocess_data(window_size)
+#
+#     # Step 1: Predict with Random Forest
+#     rf_input = scaled_data[-window_size:].flatten().reshape(1, -1)  # Flatten for RF input
+#     rf_prediction = rf_model.predict(rf_input)[0]
+#
+#     # Step 2: Prepare LSTM input (cases_new + RF prediction)
+#     lstm_input = np.concatenate((scaled_data[-window_size:], [[rf_prediction]]), axis=1)  # Add RF prediction
+#     lstm_input = lstm_input.reshape(1, -1, 2)  # Shape: (1, timesteps, features)
+#
+#     # Step 3: Predict with LSTM
+#     lstm_prediction = lstm_model.predict(lstm_input)[0][0]
+#
+#     # Step 4: Rescale LSTM prediction back to original scale
+#     lstm_prediction_rescaled = scaler.inverse_transform([[lstm_prediction]])[0][0]
+#
+#     return int(lstm_prediction_rescaled)
 
 
 

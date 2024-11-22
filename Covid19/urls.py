@@ -16,7 +16,10 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
+from api.views import predict_cases_view, current_cases_view
 
 urlpatterns = [
     path('admin/', admin.site.urls),
+    path('predict/', predict_cases_view, name='predict_cases'),
+    path('current_cases/', current_cases_view, name='current_cases'),
 ]

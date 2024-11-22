@@ -2,12 +2,16 @@ import requests
 import pandas as pd
 from io import StringIO
 from .models import CovidData
-import tensorflow as tf
 import numpy as np
 from sklearn.preprocessing import MinMaxScaler
 import joblib
 from keras.models import load_model
 
+
+
+# Load the pre-fitted scaler
+with open('api/models/scaler.pkl', 'rb') as s:
+    scaler = joblib.load(s)
 
 # Load the Random Forest model
 with open('api/models/Random_Forest.pkl', 'rb') as f:
@@ -17,8 +21,8 @@ with open('api/models/Random_Forest.pkl', 'rb') as f:
 lstm_model = load_model('api/models/LSTM.keras', compile=False)
 lstm_model.compile(optimizer='adam', loss='mean_squared_error')
 
-# Initialize scaler (ensure it's consistent with your training scaler)
-scaler = MinMaxScaler(feature_range=(0, 1))
+# # Initialize scaler (ensure it's consistent with your training scaler)
+# scaler = MinMaxScaler(feature_range=(0, 1))
 
 RAW_URL = "https://raw.githubusercontent.com/MoH-Malaysia/covid19-public/refs/heads/main/epidemic/cases_malaysia.csv"
 
@@ -44,19 +48,40 @@ def get_recent_data(window_size=30):
     return data[::-1]  # Reverse to chronological order
 
 
+# def preprocess_data(window_size=30):
+#     """
+#     Fetches recent data from the database, scales it using the pre-fitted scaler.
+#     """
+#     # Fetch recent data
+#     data = list(CovidData.objects.order_by('-date').values_list('cases', flat=True))[:window_size]
+#     data.reverse()  # Ensure chronological order
+#
+#     # Convert to DataFrame to provide feature names
+#     data_df = pd.DataFrame(data, columns=["cases_new"])
+#
+#     # Transform using the pre-fitted scaler
+#     scaled_data = scaler.transform(data_df)
+#
+#     return scaled_data
 
-def preprocess_data(window_size=30):
+
+def preprocess_data(window_size=30, max_rows=1716):
     """
-    Fetches recent data from the database, scales it, and prepares it for the hybrid model.
+    Fetches recent data from the database, scales it using the pre-fitted scaler.
     :param window_size: Number of days to consider for sliding windows.
-    :return: Preprocessed input for Random Forest and LSTM.
+    :param max_rows: Maximum number of rows to use (align with training data).
     """
-    # Fetch the latest cases from the database
-    data = list(CovidData.objects.order_by('-date').values_list('cases', flat=True))[:window_size]
-    data.reverse()  # Ensure chronological order
+    # Fetch all data and limit to the maximum rows
+    data = list(CovidData.objects.order_by('date').values_list('cases', flat=True))[:max_rows]
 
-    # Scale the data using the same scaler as during training
-    scaled_data = scaler.fit_transform(np.array(data).reshape(-1, 1))
+    # Get the last `window_size` rows
+    data = data[-window_size:]
+
+    # Convert to DataFrame with feature names
+    data_df = pd.DataFrame(data, columns=["cases_new"])
+
+    # Scale the data using the pre-fitted scaler
+    scaled_data = scaler.transform(data_df)
 
     return scaled_data
 

@@ -5,7 +5,9 @@ class CovidData(models.Model):
     date = models.DateField(unique=True)
     cases = models.IntegerField()
 
-class Prediction(models.Model):
+class PredictedCases(models.Model):
     date = models.DateField(unique=True)
     predicted_cases = models.IntegerField()
 
+    def __str__(self):
+        return f"{self.date}: {self.predicted_cases}"

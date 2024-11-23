@@ -6,6 +6,7 @@ from .models import CovidData, PredictedCases
 import numpy as np
 import joblib
 from keras.models import load_model
+import matplotlib.pyplot as plt
 
 
 # Load the pre-fitted scaler
@@ -63,31 +64,6 @@ def preprocess_data(window_size=30):
 
 
 
-# def predict_with_hybrid_model(data):
-#     """
-#     Predict future cases using the hybrid model (Random Forest + LSTM).
-#     :param data: Preprocessed data (scaled and formatted for the models).
-#     :return: Predicted cases (in original scale).
-#     """
-#     # Ensure data is 2D for Random Forest
-#     rf_input = data.reshape(1, -1)  # Flatten the data for RF
-#
-#     # Predict with Random Forest
-#     rf_predictions = rf_model.predict(rf_input)  # Returns a single prediction
-#
-#     # Prepare input for LSTM
-#     # Append RF predictions as a new feature for LSTM
-#     lstm_input = np.hstack([data[-30:].reshape(30, 1), np.full((30, 1), rf_predictions[0])])
-#     lstm_input = lstm_input.reshape(1, 30, 2)  # Reshape to 3D for LSTM input
-#
-#     # Predict with LSTM
-#     lstm_predictions = lstm_model.predict(lstm_input)
-#
-#     # Convert scaled output back to the original scale
-#     future_cases = scaler.inverse_transform(lstm_predictions)
-#
-#     return future_cases.flatten()
-
 def predict_with_hybrid_model(data, days=365):
     """
     Predict future cases for a specified number of days using the hybrid model.
@@ -135,6 +111,7 @@ def predict_with_hybrid_model(data, days=365):
     return predictions
 
 
+
 def save_predictions_to_db(predictions, start_date):
     """
     Save predicted cases to the database.
@@ -148,3 +125,16 @@ def save_predictions_to_db(predictions, start_date):
             defaults={'predicted_cases': int(predicted_case)}
         )
     print("Predicted cases saved to the database successfully!")
+
+
+
+def visualize_predictions(predictions):
+    """
+    Visualizes the predicted cases over time.
+    :param predictions: List of predicted case numbers.
+    """
+    plt.plot(predictions)
+    plt.title("Predicted COVID-19 Cases")
+    plt.xlabel("Days Ahead")
+    plt.ylabel("Cases")
+    plt.show()

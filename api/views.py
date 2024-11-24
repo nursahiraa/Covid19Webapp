@@ -14,9 +14,11 @@ def predict_cases_view(request):
     # Predict future cases
     predictions = predict_with_hybrid_model(scaled_data)
 
-    # Return predictions as JSON
-    return JsonResponse({'predictions': predictions.tolist()})
+    # Convert predictions to standard Python floats for JSON serialization
+    predictions = [float(prediction) for prediction in predictions]
 
+    # Return predictions as JSON
+    return JsonResponse({'predictions': predictions})
 
 def current_cases_view(request):
     """

@@ -64,7 +64,7 @@ def preprocess_data(window_size=30):
 
 
 
-def predict_with_hybrid_model(data, days=365):
+def predict_with_hybrid_model(data, days=21):
     """
     Predict future cases for a specified number of days using the hybrid model.
     :param data: Preprocessed data (scaled and formatted for the models).

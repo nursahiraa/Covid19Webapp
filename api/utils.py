@@ -185,25 +185,6 @@ def save_all_predictions_to_db():
                     defaults={'predicted_cases': int(predicted_case)}
                 )
         print("Existing date predictions saved to database.")
-
-    # # Predict future cases for 21 days
-    # print("Predicting cases for future 21 days...")
-    # recent_data = preprocess_data(window_size=30)  # Fetch and scale the recent 30 days
-    # future_predictions = predict_with_hybrid_model(recent_data, days=21)
-    #
-    # # Determine the start date for future predictions
-    # last_date = max(all_dates)
-    # future_start_date = last_date + timedelta(days=1)
-    #
-    # # Save future predictions to the database
-    # for i, predicted_case in enumerate(future_predictions):
-    #     predicted_date = future_start_date + timedelta(days=i)
-    #     PredictedCases.objects.update_or_create(
-    #         date=predicted_date,
-    #         defaults={'predicted_cases': int(predicted_case)}
-    #     )
-    # print("Future predictions saved to database.")
-    # Predict future cases for 21 days
     print("Checking if future predictions are needed...")
 
     # Determine the start date for future predictions
@@ -236,21 +217,6 @@ def save_all_predictions_to_db():
     else:
         print("Future predictions already exist in the database. No new predictions made.")
     print("All predictions have been saved successfully.")
-
-
-def save_predictions_to_db(predictions, start_date):
-    """
-    Save predicted cases to the database.
-    :param predictions: List of predicted cases.
-    :param start_date: Date from which predictions start.
-    """
-    for i, predicted_case in enumerate(predictions):
-        predicted_date = start_date + timedelta(days=i)
-        PredictedCases.objects.update_or_create(
-            date=predicted_date,
-            defaults={'predicted_cases': int(predicted_case)}
-        )
-    print("Predicted cases saved to the database successfully!")
 
 
 def get_all_predictions_from_db():

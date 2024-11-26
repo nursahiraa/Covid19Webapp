@@ -220,10 +220,28 @@ def save_all_predictions_to_db():
 
 
 def get_all_predictions_from_db():
-    return 0,
+    """
+    Retrieve all predicted cases from the database.
+    :return: List of dictionaries with date and predicted_cases.
+    """
+    # Fetch all predicted cases
+    predictions = PredictedCases.objects.all().values('date', 'predicted_cases')
 
-def get_all_currentcases_from_db():
-    return 0,
+    # Convert to a list of dictionaries
+    return list(predictions)
+
+
+def get_all_current_from_db():
+    """
+    Retrieve all current cases from the CovidData database.
+    :return: List of dictionaries with date and cases.
+    """
+    # Fetch all current cases
+    current_cases = CovidData.objects.all().values('date', 'cases')
+
+    # Convert to a list of dictionaries
+    return list(current_cases)
+
 
 
 #nanti tengok balik this method, should i letak dekat views ke dekt utils and then views panggil,

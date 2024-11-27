@@ -16,7 +16,7 @@ Including another URLconf
 """
 from django.contrib import admin
 from django.urls import path
-from api.views import predict_cases_view, current_cases_view
+from api.views import predict_cases_view, current_cases_view, show_all_predictions, show_all_current_cases
 
 urlpatterns = [
     path('admin/', admin.site.urls),

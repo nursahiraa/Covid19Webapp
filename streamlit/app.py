@@ -26,12 +26,21 @@ st.markdown(
     unsafe_allow_html=True
 )
 
+# Initialize session state for navigation
+if "page" not in st.session_state:
+    st.session_state.page = "Current Cases"
+
 # Sidebar for Navigation
-st.sidebar.title("Navigation")
-page = st.sidebar.selectbox(
-    "Go to:",
-    ["Current Cases", "Predictions", "Vaccination Info"]
-)
+st.sidebar.title("Covid19")
+if st.sidebar.button("Current Cases"):
+    st.session_state.page = "Current Cases"
+if st.sidebar.button("Predictions"):
+    st.session_state.page = "Predictions"
+if st.sidebar.button("Vaccination Info"):
+    st.session_state.page = "Vaccination Info"
+
+# Determine the current page
+page = st.session_state.page
 
 # **1. Current Cases Page**
 if page == "Current Cases":
@@ -82,13 +91,17 @@ elif page == "Predictions":
     date_input = st.date_input("Select a date to predict cases:")
     if st.button("Get Prediction for Date"):
         if len(predictions) > 0:
+            # Convert date_input to a pd.Timestamp
+            date_input = pd.Timestamp(date_input)
+
             index = (date_input - pd.Timestamp(prediction_dates[0])).days
             if 0 <= index < len(predictions):
                 st.write(f"Predicted cases for {date_input}: {predictions[index]}")
             else:
-                st.warning("Selected date is out of the 21-day prediction range.")
+                st.warning("Selected date is out of the 21-day prediction range.") #dy pergi dekat sini, tolong tengok nntitttt
         else:
             st.warning("Predictions not available.")
+
 
 # **3. Vaccination Info Page**
 elif page == "Vaccination Info":

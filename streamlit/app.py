@@ -60,21 +60,52 @@ page = st.session_state.page
 if page == "Current Cases":
     st.title("Current COVID-19 Cases")
 
-    # Fetch current cases data from Django
+    # Fetch all current cases data from Django
     response = requests.get(f"{BASE_URL}current_cases/")
     if response.status_code == 200:
         current_data = response.json().get('current_cases', [])
         if current_data:
+            # Convert data to DataFrame
             df = pd.DataFrame(current_data)
-            st.write("Graph of Current Cases")
+            df['date'] = pd.to_datetime(df['date'], errors='coerce')  # Ensure proper datetime format
 
-            # Plot using Plotly
-            fig = px.line(df, x="date", y="cases", title="Current COVID-19 Cases")
+            # Plot the graph using Plotly
+            st.write("Graph of Current Cases")
+            if len(df) < 2:
+                # Add dummy data point if only one row exists
+                st.warning("Not enough data to generate a meaningful graph. Adding a dummy data point.")
+                last_date = df['date'].iloc[0]
+                dummy_date = last_date - pd.Timedelta(days=1)
+                dummy_cases = df['cases'].iloc[0]  # Use the same case count for simplicity
+                df = pd.concat([df, pd.DataFrame({'date': [dummy_date], 'cases': [dummy_cases]})])
+
+            fig = px.line(
+                df,
+                x="date",
+                y="cases",
+                title="Current COVID-19 Cases",
+                width=800,  # Adjust width of the graph
+                height=500  # Adjust height of the graph
+            )
             st.plotly_chart(fig)
+
+            # Add a date input for user to query cases on a specific date
+            st.write("### Check Cases on a Specific Date")
+            selected_date = st.date_input("Select a date to check the cases:")
+            if selected_date:
+                # Filter data for the selected date
+                selected_date = pd.Timestamp(selected_date)  # Convert to Timestamp
+                filtered_data = df[df['date'] == selected_date]
+
+                if not filtered_data.empty:
+                    st.write(f"Cases on {selected_date.date()}: {filtered_data['cases'].iloc[0]}")
+                else:
+                    st.write(f"No data available for {selected_date.date()}.")
         else:
             st.write("No data available.")
     else:
         st.error("Failed to fetch current cases.")
+
 
 # **2. Predictions Page**
 elif page == "Predictions":

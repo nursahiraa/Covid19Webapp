@@ -20,6 +20,6 @@ from api.views import predict_cases_view, current_cases_view, show_all_predictio
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('predict/', predict_cases_view, name='predict_cases'),
-    path('current_cases/', current_cases_view, name='current_cases'),
+    path('predict/', show_all_predictions, name='predict_cases'),
+    path('current_cases/', show_all_current_cases, name='current_cases'),
 ]

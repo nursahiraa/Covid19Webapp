@@ -2,6 +2,12 @@ import streamlit as st
 import requests
 import pandas as pd
 import plotly.express as px  # For interactive graphs
+# Configure the Streamlit page
+st.set_page_config(
+    page_title="COVID Forecast Hub",  # Title displayed in the browser tab
+    page_icon="🌟",                 # Favicon (can be an emoji or image URL)
+    layout="wide",                  # Layout style ('centered' or 'wide')
+)
 
 # Base URL of your Django backend
 BASE_URL = "http://127.0.0.1:8000/"  # Update with your Django server URL
@@ -39,7 +45,7 @@ if "page" not in st.session_state:
     st.session_state.page = "Current Cases"
 
 # Sidebar for Navigation with Custom Title
-st.sidebar.markdown('<h1 class="sidebar-title">Covid-19 Dashboard</h1>', unsafe_allow_html=True)
+st.sidebar.markdown('<h1 class="sidebar-title">COVID Forecast Hub</h1>', unsafe_allow_html=True)
 
 st.sidebar.markdown("<br>", unsafe_allow_html=True)
 if st.sidebar.button("Current Cases"):
@@ -88,7 +94,8 @@ if page == "Current Cases":
                 height=500  # Adjust height of the graph
             )
             st.plotly_chart(fig)
-
+            st.write("")
+            st.write("")
             # Add a date input for user to query cases on a specific date
             st.write("### Check Cases on a Specific Date")
             selected_date = st.date_input("Select a date to check the cases:")
@@ -114,38 +121,65 @@ elif page == "Predictions":
     # Fetch predicted cases data from Django
     response = requests.get(f"{BASE_URL}predict/")
     if response.status_code == 200:
-        predictions = response.json().get('predictions', [])
+        raw_predictions = response.json().get('predictions', [])
 
-        # Convert predictions into DataFrame
-        if predictions:
-            prediction_dates = pd.date_range(start="2024-11-01", periods=len(predictions))
-            df = pd.DataFrame({"date": prediction_dates, "predicted_cases": predictions})
+        if raw_predictions:
+            # Convert raw predictions to DataFrame
+            df = pd.DataFrame(raw_predictions)
+            df['date'] = pd.to_datetime(df['date'])  # Ensure dates are in datetime format
 
+            # Handle missing dates by reindexing to a full date range
+            start_date = df['date'].min()
+            end_date = df['date'].max()
+            full_date_range = pd.date_range(start=start_date, end=end_date)
+            df = df.set_index('date').reindex(full_date_range, fill_value=0).reset_index()
+            df.columns = ['date', 'predicted_cases']  # Rename columns
+
+            # Add dummy data point if there’s only one row
+            if len(df) < 2:
+                last_date = df['date'].iloc[0]
+                dummy_date = last_date - pd.Timedelta(days=1)
+                dummy_cases = df['predicted_cases'].iloc[0]  # Use the same case count for simplicity
+                df = pd.concat([df, pd.DataFrame({'date': [dummy_date], 'predicted_cases': [dummy_cases]})])
+
+            # Plot the graph using Plotly
             st.write("Graph of Predicted Cases")
-
-            # Plot using Plotly
-            fig = px.line(df, x="date", y="predicted_cases", title="Predicted COVID-19 Cases")
+            fig = px.line(
+                df,
+                x="date",
+                y="predicted_cases",
+                title="Predicted COVID-19 Cases",
+                width=800,  # Adjust width of the graph
+                height=500  # Adjust height of the graph
+            )
             st.plotly_chart(fig)
+
+            # Allow user to input a date for prediction
+            st.write("### Check Predicted Cases on a Specific Date")
+
+            # Input date box for selecting a specific date
+            selected_date = st.date_input("Select a date to predict cases:")
+
+            # Button to fetch prediction for the selected date
+            if st.button("Get Prediction for Date"):
+                if selected_date:
+                    # Filter data for the selected date
+                    selected_date = pd.Timestamp(selected_date)  # Convert to Timestamp
+                    filtered_data = df[df['date'] == selected_date]
+
+                    if not filtered_data.empty:
+                        st.write(
+                            f"Predicted cases on {selected_date.date()}: {filtered_data['predicted_cases'].iloc[0]}")
+                    else:
+                        st.write(f"No prediction available for {selected_date.date()}.")
+
         else:
             st.write("No predictions available.")
     else:
         st.error("Failed to fetch predictions.")
 
-    # Allow user to input a date for prediction
-    st.write("Want to see specific predictions?")
-    date_input = st.date_input("Select a date to predict cases:")
-    if st.button("Get Prediction for Date"):
-        if len(predictions) > 0:
-            # Convert date_input to a pd.Timestamp
-            date_input = pd.Timestamp(date_input)
 
-            index = (date_input - pd.Timestamp(prediction_dates[0])).days
-            if 0 <= index < len(predictions):
-                st.write(f"Predicted cases for {date_input}: {predictions[index]}")
-            else:
-                st.warning("Selected date is out of the 21-day prediction range.") #dy pergi dekat sini, tolong tengok nntitttt
-        else:
-            st.warning("Predictions not available.")
+
 
 
 # **3. Vaccination Info Page**

@@ -6,17 +6,25 @@ import plotly.express as px  # For interactive graphs
 # Base URL of your Django backend
 BASE_URL = "http://127.0.0.1:8000/"  # Update with your Django server URL
 
-# Inject custom CSS for sidebar styles
+# Inject custom CSS for styling
 st.markdown(
     """
     <style>
-    /* Adjust the width of the sidebar */
+    /* Adjust the sidebar width */
     [data-testid="stSidebar"] {
         min-width: 300px;
         max-width: 300px;
     }
 
-    /* Adjust sidebar font size and padding */
+    /* Adjust the font size and color of the custom sidebar title */
+    h1.sidebar-title {
+        font-size: 28px !important; /* Adjust size as needed */
+        font-weight: bold !important;
+        color: #FF5733 !important; /* Change to desired color */
+        margin-bottom: 20px;
+    }
+
+    /* Adjust the general sidebar content styles */
     [data-testid="stSidebar"] .sidebar-content {
         font-size: 14px;
         padding: 10px;
@@ -30,12 +38,18 @@ st.markdown(
 if "page" not in st.session_state:
     st.session_state.page = "Current Cases"
 
-# Sidebar for Navigation
-st.sidebar.title("Covid19")
+# Sidebar for Navigation with Custom Title
+st.sidebar.markdown('<h1 class="sidebar-title">Covid-19 Dashboard</h1>', unsafe_allow_html=True)
+
+st.sidebar.markdown("<br>", unsafe_allow_html=True)
 if st.sidebar.button("Current Cases"):
     st.session_state.page = "Current Cases"
+
+st.sidebar.markdown("<br>", unsafe_allow_html=True)
 if st.sidebar.button("Predictions"):
     st.session_state.page = "Predictions"
+
+st.sidebar.markdown("<br>", unsafe_allow_html=True)
 if st.sidebar.button("Vaccination Info"):
     st.session_state.page = "Vaccination Info"
 

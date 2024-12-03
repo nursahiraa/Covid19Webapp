@@ -2,11 +2,15 @@ import streamlit as st
 import requests
 import pandas as pd
 import plotly.express as px  # For interactive graphs
+from streamlit_option_menu import option_menu
+import json
+
 # Configure the Streamlit page
 st.set_page_config(
     page_title="COVID Forecast Hub",  # Title displayed in the browser tab
     page_icon="🌟",                 # Favicon (can be an emoji or image URL)
-    layout="wide",                  # Layout style ('centered' or 'wide')
+    layout="wide",
+    initial_sidebar_state="auto"# Layout style ('centered' or 'wide')
 )
 
 # Base URL of your Django backend
@@ -35,35 +39,156 @@ st.markdown(
         font-size: 14px;
         padding: 10px;
     }
+        /* Transparent buttons */
+    .transparent-button {
+        background-color: transparent !important;
+        color: #333 !important; /* Text color */
+        border: 2px solid #333 !important; /* Border color */
+        border-radius: 5px; /* Rounded corners */
+        font-size: 16px !important; /* Font size */
+        padding: 10px 20px !important; /* Padding */
+        margin: 10px 0 !important; /* Spacing between buttons */
+        text-align: center;
+        cursor: pointer;
+        transition: all 0.3s ease;
+    }
+
+    /* Hover effect for buttons */
+    .transparent-button:hover {
+        background-color: #007bff !important; /* Highlight color on hover */
+        color: white !important;
+        border-color: #007bff !important;
+    }
+    .metric-container {
+        font-size: 1.5em !important; /* Adjust the font size */
+    }
+    
     </style>
     """,
     unsafe_allow_html=True
 )
+# Sample case data for every Malaysian state and Federal Territory
+case_data = pd.DataFrame({
+    "state": [
+        "Johor", "Kedah", "Kelantan", "Melaka", "Negeri Sembilan", "Pahang",
+        "Penang", "Perak", "Perlis", "Sabah", "Sarawak", "Selangor",
+        "Terengganu", "Kuala Lumpur", "Labuan", "Putrajaya"
+    ],
+    "cases": [1200, 800, 300, 500, 700, 600, 900, 400, 50, 1500, 1400, 2000, 300, 1000, 200, 150]
+})
 
 # Initialize session state for navigation
 if "page" not in st.session_state:
-    st.session_state.page = "Current Cases"
+    st.session_state.page = "Home"
 
 # Sidebar for Navigation with Custom Title
 st.sidebar.markdown('<h1 class="sidebar-title">COVID Forecast Hub</h1>', unsafe_allow_html=True)
 
-st.sidebar.markdown("<br>", unsafe_allow_html=True)
-if st.sidebar.button("Current Cases"):
+with st.sidebar:
+    selected = option_menu (
+        menu_title="Main Menu",
+        options=["Home", "Current Cases", "Predictions", "Vaccines"],
+    )
+
+if selected == "Home":
+    st.session_state.page = "Home"
+if selected == "Current Cases":
     st.session_state.page = "Current Cases"
-
-st.sidebar.markdown("<br>", unsafe_allow_html=True)
-if st.sidebar.button("Predictions"):
+if selected == "Predictions":
     st.session_state.page = "Predictions"
-
-st.sidebar.markdown("<br>", unsafe_allow_html=True)
-if st.sidebar.button("Vaccination Info"):
+if selected == "Vaccines":
     st.session_state.page = "Vaccination Info"
+
 
 # Determine the current page
 page = st.session_state.page
 
+
+if page == "Home":
+    st.title("🌟 Welcome to COVID Forecast Hub")
+    st.write("")
+
+    st.subheader("Your One-Stop Solution for COVID-19 Data Insights and Predictions")
+    st.write("""
+    This application provides up-to-date information on COVID-19 cases, future predictions, and vaccination data. 
+    Use the sidebar to navigate through the sections for a detailed analysis and insights.
+    """)
+
+    # Example (Replace with actual data fetched from the backend)
+    st.subheader("Malaysia COVID-19 Summary")
+    st.write("")
+    col1, col2, col3 = st.columns(3)
+    # Wrap metrics in a container with the custom class
+    col1.markdown('<div class="metric-container">Total Cases</div>', unsafe_allow_html=True)
+    col1.metric("", "678M")
+
+    col2.markdown('<div class="metric-container">Total Deaths</div>', unsafe_allow_html=True)
+    col2.metric("", "6.8M")
+
+    col3.markdown('<div class="metric-container">Total Recovered</div>', unsafe_allow_html=True)
+    col3.metric("", "650M")
+    st.write("")
+
+    # Load the GeoJSON file
+    with open("/Users/nursahirazhamri/Desktop/Covid19/streamlit/malaysia_state.geojson", "r") as f:
+        geojson_data = json.load(f)
+
+    # Create a choropleth map
+    fig = px.choropleth(
+        case_data,
+        geojson=geojson_data,
+        locations="state",  # Match this column with GeoJSON properties.name
+        featureidkey="properties.name",  # GeoJSON key for state names
+        color="cases",  # Column for coloring
+        color_continuous_scale=["green", "yellow", "red"],  # Color gradient
+    )
+    # Adjust the map layout for a bigger size
+    fig.update_layout(
+        title={
+        "text": "COVID-19 Cases by State in Malaysia",
+        "font": {"size": 35,"family": "Arial", "color": "#FF5733"},  # Adjust the font size (e.g., 24 for larger text)
+        "x": 0.1, # Center-aligned
+        "y": 0.9,  # Adjust vertical alignment (closer to the top edge)
+        },
+        height=700,  # Increase map height (default ~450)
+        width=1000,  # Increase map width (default ~700)
+        plot_bgcolor="blue",  # Background color of the plot
+        shapes=[
+            # Rectangle frame
+            dict(
+                type="rect",  # Shape type
+                xref="paper", yref="paper",  # Use paper coordinates (relative to plot area)
+                x0=0, y0=0.172,  # Bottom-left corner of the rectangle
+                x1=1, y1=0.828,  # Top-right corner of the rectangle
+                line=dict(color="black", width=2)  # Border color and thickness
+            )
+        ],
+        margin={"r": 0, "t": 30, "l": 0, "b": 0},  # Adjust map margins
+        coloraxis_colorbar=dict(
+            len=0.7,  # Adjust the height of the color bar (0.7 = 70% of map height)
+            y=0.5,  # Center the color bar vertically
+            yanchor="middle",  # Align the color bar relative to the center
+        )
+    )
+    # Adjust map appearance
+    fig.update_geos(fitbounds="locations", visible=False, bgcolor="#F0F8FF")
+    st.plotly_chart(
+        fig,
+        use_container_width=True,
+        config={
+            "displayModeBar": True,  # Show the mode bar
+            "modeBarButtonsToRemove": [
+                "zoom2d", "pan2d", "select2d", "lasso2d", "zoomIn2d",
+                "zoomOut2d", "autoScale2d", "toggleSpikelines", "hoverClosestCartesian",
+                "hoverCompareCartesian", "toggleFullscreen", "toImage"
+            ],  # Remove all buttons except reset
+            "displaylogo": False  # Remove Plotly logo
+        }
+    )
+
+
 # **1. Current Cases Page**
-if page == "Current Cases":
+elif page == "Current Cases":
     st.title("Current COVID-19 Cases")
 
     # Fetch all current cases data from Django
@@ -76,7 +201,7 @@ if page == "Current Cases":
             df['date'] = pd.to_datetime(df['date'], errors='coerce')  # Ensure proper datetime format
 
             # Plot the graph using Plotly
-            st.write("Graph of Current Cases")
+            # st.write("Graph of Current Cases")
             if len(df) < 2:
                 # Add dummy data point if only one row exists
                 st.warning("Not enough data to generate a meaningful graph. Adding a dummy data point.")
@@ -94,20 +219,24 @@ if page == "Current Cases":
                 height=500  # Adjust height of the graph
             )
             st.plotly_chart(fig)
-            st.write("")
-            st.write("")
+            st.markdown("---")
             # Add a date input for user to query cases on a specific date
-            st.write("### Check Cases on a Specific Date")
+            st.subheader("Cases on a Specific Date")
+            st.write("")
             selected_date = st.date_input("Select a date to check the cases:")
-            if selected_date:
-                # Filter data for the selected date
-                selected_date = pd.Timestamp(selected_date)  # Convert to Timestamp
-                filtered_data = df[df['date'] == selected_date]
 
-                if not filtered_data.empty:
-                    st.write(f"Cases on {selected_date.date()}: {filtered_data['cases'].iloc[0]}")
-                else:
-                    st.write(f"No data available for {selected_date.date()}.")
+            # Button to fetch prediction for the selected date
+            if st.button("Submit"):
+                if selected_date:
+                    # Filter data for the selected date
+                    selected_date = pd.Timestamp(selected_date)  # Convert to Timestamp
+                    filtered_data = df[df['date'] == selected_date]
+
+                    if not filtered_data.empty:
+                        st.write(f"Cases on {selected_date.date()}: {filtered_data['cases'].iloc[0]}")
+                    else:
+                        st.write(f"No data available.")
+
         else:
             st.write("No data available.")
     else:
@@ -143,7 +272,7 @@ elif page == "Predictions":
                 df = pd.concat([df, pd.DataFrame({'date': [dummy_date], 'predicted_cases': [dummy_cases]})])
 
             # Plot the graph using Plotly
-            st.write("Graph of Predicted Cases")
+            # st.write("Graph of Predicted Cases")
             fig = px.line(
                 df,
                 x="date",
@@ -155,13 +284,14 @@ elif page == "Predictions":
             st.plotly_chart(fig)
 
             # Allow user to input a date for prediction
-            st.write("### Check Predicted Cases on a Specific Date")
-
+            st.markdown("---")
+            st.subheader("Cases on a Specific Date")
+            st.write("")
             # Input date box for selecting a specific date
             selected_date = st.date_input("Select a date to predict cases:")
 
             # Button to fetch prediction for the selected date
-            if st.button("Get Prediction for Date"):
+            if st.button("Submit"):
                 if selected_date:
                     # Filter data for the selected date
                     selected_date = pd.Timestamp(selected_date)  # Convert to Timestamp
@@ -171,7 +301,7 @@ elif page == "Predictions":
                         st.write(
                             f"Predicted cases on {selected_date.date()}: {filtered_data['predicted_cases'].iloc[0]}")
                     else:
-                        st.write(f"No prediction available for {selected_date.date()}.")
+                        st.write(f"No prediction available.")
 
         else:
             st.write("No predictions available.")
@@ -375,3 +505,4 @@ elif page == "Vaccination Info":
     st.markdown("- [WHO COVID-19 Vaccines](https://www.who.int/emergencies/diseases/novel-coronavirus-2019/covid-19-vaccines)")
     st.markdown("- [Malaysia MoH](https://covid-19.moh.gov.my/)")
     st.markdown("- [NPRA Vaccine Information](https://npra.gov.my/)")
+

@@ -67,15 +67,23 @@ st.markdown(
     """,
     unsafe_allow_html=True
 )
-# Sample case data for every Malaysian state and Federal Territory
-case_data = pd.DataFrame({
-    "state": [
-        "Johor", "Kedah", "Kelantan", "Melaka", "Negeri Sembilan", "Pahang",
-        "Penang", "Perak", "Perlis", "Sabah", "Sarawak", "Selangor",
-        "Terengganu", "Kuala Lumpur", "Labuan", "Putrajaya"
-    ],
-    "cases": [1200, 800, 300, 500, 700, 600, 900, 400, 50, 1500, 1400, 2000, 300, 1000, 200, 150]
-})
+
+
+# Load COVID-19 data directly from the API
+@st.cache_data
+def load_data():
+    url = "https://raw.githubusercontent.com/MoH-Malaysia/covid19-public/refs/heads/main/epidemic/cases_state.csv"
+    covid_data = pd.read_csv(url)
+    covid_data['date'] = pd.to_datetime(covid_data['date'])
+    return covid_data
+
+# Load death cases data directly from the API
+@st.cache_data
+def load_death():
+    url = "https://raw.githubusercontent.com/MoH-Malaysia/covid19-public/refs/heads/main/epidemic/deaths_malaysia.csv"
+    death_data = pd.read_csv(url)
+    death_data['date'] = pd.to_datetime(death_data['date'])
+    return death_data
 
 # Initialize session state for navigation
 if "page" not in st.session_state:
@@ -87,7 +95,7 @@ st.sidebar.markdown('<h1 class="sidebar-title">COVID Forecast Hub</h1>', unsafe_
 with st.sidebar:
     selected = option_menu (
         menu_title="Main Menu",
-        options=["Home", "Current Cases", "Predictions", "Vaccines"],
+        options=["Home", "Current Cases", "Predictions", "Vaccination Info"],
     )
 
 if selected == "Home":
@@ -96,7 +104,7 @@ if selected == "Current Cases":
     st.session_state.page = "Current Cases"
 if selected == "Predictions":
     st.session_state.page = "Predictions"
-if selected == "Vaccines":
+if selected == "Vaccination Info":
     st.session_state.page = "Vaccination Info"
 
 
@@ -113,6 +121,13 @@ if page == "Home":
     This application provides up-to-date information on COVID-19 cases, future predictions, and vaccination data. 
     Use the sidebar to navigate through the sections for a detailed analysis and insights.
     """)
+    # fetch data
+    covid_data = load_data();
+    death_data = load_death();
+    # Aggregate totals
+    total_cases = covid_data['cases_new'].sum()
+    total_recovered = covid_data['cases_recovered'].sum()
+    total_death = death_data['deaths_new'].sum()
 
     # Example (Replace with actual data fetched from the backend)
     st.markdown('<h2 style="color:#FF5733;">Malaysia COVID-19 Summary</h2>', unsafe_allow_html=True)
@@ -120,13 +135,13 @@ if page == "Home":
     col1, col2, col3 = st.columns(3)
     # Wrap metrics in a container with the custom class
     col1.markdown('<div class="metric-container">Total Cases</div>', unsafe_allow_html=True)
-    col1.metric("", "678M")
+    col1.metric("", f"{total_cases:,}")
 
     col2.markdown('<div class="metric-container">Total Deaths</div>', unsafe_allow_html=True)
-    col2.metric("", "6.8M")
+    col2.metric("", f"{total_death:,}")
 
     col3.markdown('<div class="metric-container">Total Recovered</div>', unsafe_allow_html=True)
-    col3.metric("", "650M")
+    col3.metric("", f"{total_recovered:,}")
     st.write("")
 
     # Load the GeoJSON file
@@ -136,18 +151,6 @@ if page == "Home":
     geojson_states = [feature["properties"]["name"] for feature in geojson_data["features"]]
     print("GeoJSON States:", geojson_states)
 
-
-    # Load COVID-19 data directly from the API
-    @st.cache_data
-    def load_data():
-        url = "https://raw.githubusercontent.com/MoH-Malaysia/covid19-public/refs/heads/main/epidemic/cases_state.csv"
-        covid_data = pd.read_csv(url)
-        covid_data['date'] = pd.to_datetime(covid_data['date'])
-        return covid_data
-
-
-    # Fetch and process the data
-    covid_data = load_data()
     latest_date = covid_data['date'].max()
     latest_data = covid_data[covid_data['date'] == latest_date]
     map_data = latest_data[['state', 'cases_new']].rename(columns={"cases_new": "cases"})
@@ -276,7 +279,7 @@ elif page == "Current Cases":
             st.plotly_chart(fig)
             st.markdown("---")
             # Add a date input for user to query cases on a specific date
-            st.subheader("Cases on a Specific Date")
+            st.markdown('<h2 style="color:#FF5733;">📅 Cases on a Specific Date</h2>', unsafe_allow_html=True)
             st.write("")
             selected_date = st.date_input("Select a date to check the cases:")
 
@@ -296,6 +299,32 @@ elif page == "Current Cases":
             st.write("No data available.")
     else:
         st.error("Failed to fetch current cases.")
+
+# nnti cuba buat dekat homapage dekt total cases tu,, kat sini maybe tambah kotak je kot untuk output
+    col1, col2 = st.columns(2)
+
+    with col1:
+        st.markdown(
+            """
+            <div style='background-color: #f4f4f4; padding: 20px; border-radius: 10px;'>
+                <h3 style='color: #0073e6;'>📊 Total Cases</h3>
+                <p style='font-size: 18px; color: #333;'>{}</p>
+            </div>
+            """.format(111),
+            unsafe_allow_html=True
+        )
+
+    with col2:
+        st.markdown(
+            """
+            <div style='background-color: #ffe6e6; padding: 20px; border-radius: 10px;'>
+                <h3 style='color: #ff4d4d;'>💀 Total Deaths</h3>
+                <p style='font-size: 18px; color: #333;'>{}</p>
+            </div>
+            """.format(2222),
+            unsafe_allow_html=True
+        )
+
 
 
 # **2. Predictions Page**
@@ -340,7 +369,7 @@ elif page == "Predictions":
 
             # Allow user to input a date for prediction
             st.markdown("---")
-            st.subheader("Cases on a Specific Date")
+            st.markdown('<h2 style="color:#FF5733;">📅 Cases on a Specific Date</h2>', unsafe_allow_html=True)
             st.write("")
             # Input date box for selecting a specific date
             selected_date = st.date_input("Select a date to predict cases:")
@@ -353,8 +382,8 @@ elif page == "Predictions":
                     filtered_data = df[df['date'] == selected_date]
 
                     if not filtered_data.empty:
-                        st.write(
-                            f"Predicted cases on {selected_date.date()}: {filtered_data['predicted_cases'].iloc[0]}")
+                        st.write(f"Predicted cases on {selected_date.date()}: {filtered_data['predicted_cases'].iloc[0]}")
+                        st.markdown('<h5 style="color:#FF5733;">For more information, visit:</h5>',unsafe_allow_html=True)
                     else:
                         st.write(f"No prediction available.")
 
@@ -362,9 +391,6 @@ elif page == "Predictions":
             st.write("No predictions available.")
     else:
         st.error("Failed to fetch predictions.")
-
-
-
 
 
 # **3. Vaccination Info Page**
@@ -556,7 +582,7 @@ elif page == "Vaccination Info":
 
     st.markdown("---")
     # Provide a summary with links to credible sources
-    st.subheader("For more information, visit:")
+    st.markdown('<h3 style="color:#FF5733;">For more information, visit:</h3>', unsafe_allow_html=True)
     st.markdown("- [WHO COVID-19 Vaccines](https://www.who.int/emergencies/diseases/novel-coronavirus-2019/covid-19-vaccines)")
     st.markdown("- [Malaysia MoH](https://covid-19.moh.gov.my/)")
     st.markdown("- [NPRA Vaccine Information](https://npra.gov.my/)")

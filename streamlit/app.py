@@ -115,7 +115,7 @@ if page == "Home":
     """)
 
     # Example (Replace with actual data fetched from the backend)
-    st.subheader("Malaysia COVID-19 Summary")
+    st.markdown('<h2 style="color:#FF5733;">Malaysia COVID-19 Summary</h2>', unsafe_allow_html=True)
     st.write("")
     col1, col2, col3 = st.columns(3)
     # Wrap metrics in a container with the custom class
@@ -133,9 +133,57 @@ if page == "Home":
     with open("/Users/nursahirazhamri/Desktop/Covid19/streamlit/malaysia_state.geojson", "r") as f:
         geojson_data = json.load(f)
 
+    geojson_states = [feature["properties"]["name"] for feature in geojson_data["features"]]
+    print("GeoJSON States:", geojson_states)
+
+
+    # Load COVID-19 data directly from the API
+    @st.cache_data
+    def load_data():
+        url = "https://raw.githubusercontent.com/MoH-Malaysia/covid19-public/refs/heads/main/epidemic/cases_state.csv"
+        covid_data = pd.read_csv(url)
+        covid_data['date'] = pd.to_datetime(covid_data['date'])
+        return covid_data
+
+
+    # Fetch and process the data
+    covid_data = load_data()
+    latest_date = covid_data['date'].max()
+    latest_data = covid_data[covid_data['date'] == latest_date]
+    map_data = latest_data[['state', 'cases_new']].rename(columns={"cases_new": "cases"})
+
+    api_states = map_data['state'].unique()
+    print("API States:", api_states)
+    # Check mismatches
+    mismatched_states = set(api_states) - set(geojson_states)
+    print("Mismatched States:", mismatched_states)
+
+    # Map state names if necessary (example for WP states)
+    state_mapping = {
+        "W.P. Kuala Lumpur": "Kuala Lumpur",
+        "W.P. Labuan": "Labuan",
+        "W.P. Putrajaya": "Putrajaya",
+        "Johor": "Johor",
+        "Kedah": "Kedah",
+        "Kelantan": "Kelantan",
+        "Melaka": "Melaka",
+        "Negeri Sembilan": "Negeri Sembilan",
+        "Pahang": "Pahang",
+        "Sabah": "Sabah",
+        "Sarawak": "Sarawak",
+        "Selangor": "Selangor",
+        "Terengganu": "Terengganu",
+        "Pulau Pinang": "Pulau Pinang",
+        "Perak": "Perak",
+        "Perlis": "Perlis",
+    }
+    map_data['state'] = map_data['state'].replace(state_mapping)
+    formatted_date = latest_date.strftime("%d-%m-%Y")  # Format date as DD-MM-YYYY
+
+
     # Create a choropleth map
     fig = px.choropleth(
-        case_data,
+        map_data,
         geojson=geojson_data,
         locations="state",  # Match this column with GeoJSON properties.name
         featureidkey="properties.name",  # GeoJSON key for state names
@@ -145,7 +193,11 @@ if page == "Home":
     # Adjust the map layout for a bigger size
     fig.update_layout(
         title={
-        "text": "COVID-19 Cases by State in Malaysia",
+        "text": (
+            "<b>COVID-19 Cases by State in Malaysia</b>"
+            "<br><span style='font-size:16px; color:gray;'>Latest Data: "
+            f"{formatted_date}</span>"
+        ),
         "font": {"size": 35,"family": "Arial", "color": "#FF5733"},  # Adjust the font size (e.g., 24 for larger text)
         "x": 0.1, # Center-aligned
         "y": 0.9,  # Adjust vertical alignment (closer to the top edge)
@@ -185,6 +237,9 @@ if page == "Home":
             "displaylogo": False  # Remove Plotly logo
         }
     )
+    # # Show additional data (optional)
+    # st.subheader(f"COVID-19 Cases on {latest_date.date()}")
+    # st.dataframe(map_data)
 
 
 # **1. Current Cases Page**

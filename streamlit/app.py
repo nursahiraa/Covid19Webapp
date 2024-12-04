@@ -4,6 +4,8 @@ import pandas as pd
 import plotly.express as px  # For interactive graphs
 from streamlit_option_menu import option_menu
 import json
+from datetime import date
+
 
 # Configure the Streamlit page
 st.set_page_config(
@@ -115,12 +117,22 @@ page = st.session_state.page
 if page == "Home":
     st.title("🌟 Welcome to COVID Forecast Hub")
     st.write("")
+    ### Track, Analyze, and Predict COVID-19 Trends
+    st.subheader("Your Gateway to COVID-19 Data Insights")
+    st.write("")
+    st.markdown(
+        """
+        <div style='font-size:20px; line-height:1.6;'>
+            Stay informed with the latest COVID-19 statistics and predictions. Whether 
+            you're looking for past trends or future case forecasts, this website provides all the tools you 
+            need to stay updated. Use the sidebar to explore detailed sections tailored to your needs.
+        </div>
+        """,
+        unsafe_allow_html=True
+    )
 
-    st.subheader("Your One-Stop Solution for COVID-19 Data Insights and Predictions")
-    st.write("""
-    This application provides up-to-date information on COVID-19 cases, future predictions, and vaccination data. 
-    Use the sidebar to navigate through the sections for a detailed analysis and insights.
-    """)
+    st.write("")
+    st.write("")
     # fetch data
     covid_data = load_data();
     death_data = load_death();
@@ -131,6 +143,7 @@ if page == "Home":
 
     # Example (Replace with actual data fetched from the backend)
     st.markdown('<h2 style="color:#FF5733;">Malaysia COVID-19 Summary</h2>', unsafe_allow_html=True)
+    st.write("")
     st.write("")
     col1, col2, col3 = st.columns(3)
     # Wrap metrics in a container with the custom class
@@ -143,6 +156,42 @@ if page == "Home":
     col3.markdown('<div class="metric-container">Total Recovered</div>', unsafe_allow_html=True)
     col3.metric("", f"{total_recovered:,}")
     st.write("")
+    st.write("")
+
+    # col1, col2, col3 = st.columns(3)
+    #
+    # with col1:
+    #     st.markdown(
+    #         """
+    #         <div style='background-color: #f4f4f4; padding: 20px; border-radius: 10px;'>
+    #             <h3 style='color: #0073e6;'>📊 Total Cases</h3>
+    #             <p style='font-size: 18px; color: #333;'>{}</p>
+    #         </div>
+    #         """.format(total_cases),
+    #         unsafe_allow_html=True
+    #     )
+    #
+    # with col2:
+    #     st.markdown(
+    #         """
+    #         <div style='background-color: #ffe6e6; padding: 20px; border-radius: 10px;'>
+    #             <h3 style='color: #ff4d4d;'>💀 Total Deaths</h3>
+    #             <p style='font-size: 18px; color: #333;'>{}</p>
+    #         </div>
+    #         """.format(total_death),
+    #         unsafe_allow_html=True
+    #     )
+    #
+    # with col3:
+    #     st.markdown(
+    #         """
+    #         <div style='background-color:  #e6ffe6; padding: 20px; border-radius: 10px;'>
+    #             <h3 style='color: #28a745;'>🏥 Total Recovered</h3>
+    #             <p style='font-size: 18px; color: #333;'>{}</p>
+    #         </div>
+    #         """.format(total_recovered),
+    #         unsafe_allow_html=True
+    #     )
 
     # Load the GeoJSON file
     with open("/Users/nursahirazhamri/Desktop/Covid19/streamlit/malaysia_state.geojson", "r") as f:
@@ -273,57 +322,57 @@ elif page == "Current Cases":
                 x="date",
                 y="cases",
                 title="Current COVID-19 Cases",
-                width=800,  # Adjust width of the graph
-                height=500  # Adjust height of the graph
+                width=900,  # Adjust width of the graph
+                height=600  # Adjust height of the graph
             )
             st.plotly_chart(fig)
             st.markdown("---")
             # Add a date input for user to query cases on a specific date
-            st.markdown('<h2 style="color:#FF5733;">📅 Cases on a Specific Date</h2>', unsafe_allow_html=True)
+            st.markdown('<h2 style="font-weight: bold;">Cases on a Specific Date</h2>', unsafe_allow_html=True)
             st.write("")
-            selected_date = st.date_input("Select a date to check the cases:")
+            # Create a styled container for the form
+            st.markdown(
+                """
+                <div style='background-color: #f9f9f9; padding: 15px; border-radius: 10px; margin-top: 20px;'>
+                    <h3 style='color:#FF5733;'>📅 Select a Date</h3>
+                """,
+                unsafe_allow_html=True,
+            )
 
-            # Button to fetch prediction for the selected date
+            # Add a date input and submit button
+            selected_date = st.date_input("Choose a date:", value=date.today(), key="date_input",
+                                          label_visibility="collapsed")
+
             if st.button("Submit"):
+                # Simulated case prediction logic
                 if selected_date:
-                    # Filter data for the selected date
-                    selected_date = pd.Timestamp(selected_date)  # Convert to Timestamp
-                    filtered_data = df[df['date'] == selected_date]
+                # Filter data for the selected date
+                        selected_date = pd.Timestamp(selected_date)  # Convert to Timestamp
+                        filtered_data = df[df['date'] == selected_date]
 
-                    if not filtered_data.empty:
-                        st.write(f"Cases on {selected_date.date()}: {filtered_data['cases'].iloc[0]}")
-                    else:
-                        st.write(f"No data available.")
-
+                        if not filtered_data.empty:
+                            # st.write(f"Cases on {selected_date.date()}: {filtered_data['cases'].iloc[0]}")
+                            st.markdown(
+                                f"""<div style='background-color: #f9f9f9; padding: 20px; border-radius: 10px; margin-top: 20px;'>
+                                     <h3 style='color: #28a745;'>Cases Results</h3>
+                                     <p><b>Date:</b> {selected_date.date()}</p>
+                                     <p><b>Current Cases:</b>  {filtered_data['cases'].iloc[0]}</p></div>""",unsafe_allow_html=True,)
+                        else:
+                            st.markdown(
+                            """
+                            <div style='background-color: #fff3cd; padding: 20px; border-radius: 10px; margin-top: 20px;'>
+                                <p style='color: #856404;'>No data available. Please choose a valid date from the past.</p>
+                            </div>
+                                 """,
+                                    unsafe_allow_html=True,)
         else:
             st.write("No data available.")
     else:
         st.error("Failed to fetch current cases.")
 
-# nnti cuba buat dekat homapage dekt total cases tu,, kat sini maybe tambah kotak je kot untuk output
-    col1, col2 = st.columns(2)
 
-    with col1:
-        st.markdown(
-            """
-            <div style='background-color: #f4f4f4; padding: 20px; border-radius: 10px;'>
-                <h3 style='color: #0073e6;'>📊 Total Cases</h3>
-                <p style='font-size: 18px; color: #333;'>{}</p>
-            </div>
-            """.format(111),
-            unsafe_allow_html=True
-        )
 
-    with col2:
-        st.markdown(
-            """
-            <div style='background-color: #ffe6e6; padding: 20px; border-radius: 10px;'>
-                <h3 style='color: #ff4d4d;'>💀 Total Deaths</h3>
-                <p style='font-size: 18px; color: #333;'>{}</p>
-            </div>
-            """.format(2222),
-            unsafe_allow_html=True
-        )
+
 
 
 
@@ -361,18 +410,28 @@ elif page == "Predictions":
                 df,
                 x="date",
                 y="predicted_cases",
-                title="Predicted COVID-19 Cases",
-                width=800,  # Adjust width of the graph
-                height=500  # Adjust height of the graph
+                # title="Predicted COVID-19 Cases",
+                width=900,  # Adjust width of the graph
+                height=600  # Adjust height of the graph
             )
             st.plotly_chart(fig)
 
             # Allow user to input a date for prediction
             st.markdown("---")
-            st.markdown('<h2 style="color:#FF5733;">📅 Cases on a Specific Date</h2>', unsafe_allow_html=True)
+            st.markdown('<h2 style="font-weight: bold;">Cases on a Specific Date</h2>', unsafe_allow_html=True)
             st.write("")
-            # Input date box for selecting a specific date
-            selected_date = st.date_input("Select a date to predict cases:")
+            # Create a styled container for the form
+            st.markdown(
+                """
+                <div style='background-color: #f9f9f9; padding: 15px; border-radius: 10px; margin-top: 20px;'>
+                    <h3 style='color:#FF5733;'>📅 Select a Date</h3>
+                """,
+                unsafe_allow_html=True,
+            )
+
+            # Add a date input and submit button
+            selected_date = st.date_input("Choose a date:", value=date.today(), key="date_input",
+                                          label_visibility="collapsed")
 
             # Button to fetch prediction for the selected date
             if st.button("Submit"):
@@ -382,10 +441,20 @@ elif page == "Predictions":
                     filtered_data = df[df['date'] == selected_date]
 
                     if not filtered_data.empty:
-                        st.write(f"Predicted cases on {selected_date.date()}: {filtered_data['predicted_cases'].iloc[0]}")
-                        st.markdown('<h5 style="color:#FF5733;">For more information, visit:</h5>',unsafe_allow_html=True)
+                        st.markdown(
+                            f"""<div style='background-color: #f9f9f9; padding: 20px; border-radius: 10px; margin-top: 20px;'>
+                                 <h3 style='color: #28a745;'>Prediction Results</h3>
+                                 <p><b>Date:</b> {selected_date.date()}</p>
+                                 <p><b>Predicted Cases:</b>  {filtered_data['predicted_cases'].iloc[0]}</p></div>""",
+                            unsafe_allow_html=True, )
                     else:
-                        st.write(f"No prediction available.")
+                        st.markdown(
+                            """
+                            <div style='background-color: #fff3cd; padding: 20px; border-radius: 10px; margin-top: 20px;'>
+                                <p style='color: #856404;'>No prediction available. Predictions can only be made for dates within 21 days from today.</p>
+                            </div>
+                                 """,
+                            unsafe_allow_html=True, )
 
         else:
             st.write("No predictions available.")

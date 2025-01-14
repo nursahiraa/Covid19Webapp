@@ -355,8 +355,8 @@ elif page == "Current Cases":
                             st.markdown(
                                 f"""<div style='background-color: #f9f9f9; padding: 20px; border-radius: 10px; margin-top: 20px;'>
                                      <h3 style='color: #28a745;'>Cases Results</h3>
-                                     <p><b>Date:</b> {selected_date.date()}</p>
-                                     <p><b>Current Cases:</b>  {filtered_data['cases'].iloc[0]}</p></div>""",unsafe_allow_html=True,)
+                                     <p style='color: Black;'><b>Date:</b> {selected_date.date()}</p>
+                                     <p style='color: Black;'><b>Current Cases:</b>  {filtered_data['cases'].iloc[0]}</p></div>""",unsafe_allow_html=True,)
                         else:
                             st.markdown(
                             """
@@ -444,8 +444,8 @@ elif page == "Predictions":
                         st.markdown(
                             f"""<div style='background-color: #f9f9f9; padding: 20px; border-radius: 10px; margin-top: 20px;'>
                                  <h3 style='color: #28a745;'>Prediction Results</h3>
-                                 <p><b>Date:</b> {selected_date.date()}</p>
-                                 <p><b>Predicted Cases:</b>  {filtered_data['predicted_cases'].iloc[0]}</p></div>""",
+                                 <p style='color: Black;'><b>Date:</b> {selected_date.date()}</p>
+                                 <p style='color: Black;'><b>Predicted Cases:</b>  {filtered_data['predicted_cases'].iloc[0]}</p></div>""",
                             unsafe_allow_html=True, )
                     else:
                         st.markdown(

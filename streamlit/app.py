@@ -87,6 +87,76 @@ def load_death():
     death_data['date'] = pd.to_datetime(death_data['date'])
     return death_data
 
+
+# Combine Current Cases and Predicted Cases
+def get_combined_cases():
+    """
+    Combines current and predicted cases into a single DataFrame, aligning on date.
+    """
+    # Fetch current cases
+    response = requests.get(f"{BASE_URL}current_cases/")
+    if response.status_code == 200:
+        current_data = response.json().get('current_cases', [])
+        st.write("Current Data Preview: sampai sini")
+
+    # Fetch predicted cases data from Django
+    response = requests.get(f"{BASE_URL}predict/")
+    if response.status_code == 200:
+        predicted_data = response.json().get('predictions', [])
+        st.write("predicted Data Preview: sampai sini")
+
+
+    if current_data and predicted_data:
+        # Create DataFrames from the fetched data
+        current_df = pd.DataFrame(current_data)  # Directly use the list
+        predicted_df = pd.DataFrame(predicted_data)  # Directly use the list
+        st.write("predicted Data Preview: sampai sini 2")
+
+        # Debug data
+        st.write("Current Data Preview:", current_df.head())
+        st.write("Predicted Data Preview:", predicted_df.head())
+
+        # Ensure proper datetime format
+        current_df['date'] = pd.to_datetime(current_df['date'], errors='coerce')
+        predicted_df['date'] = pd.to_datetime(predicted_df['date'], errors='coerce')
+
+        # Rename columns for clarity
+        current_df = current_df.rename(columns={'cases': 'cases_current'})
+        predicted_df = predicted_df.rename(columns={'predicted_cases': 'cases_predicted'})
+
+        # Handle overlapping and future dates
+        # Create a full date range covering both current and predicted dates
+        all_dates = pd.date_range(
+            start=current_df['date'].min(),
+            end=predicted_df['date'].max()
+        )
+
+        # Reindex current and predicted data to the full date range
+        current_df = current_df.set_index('date').reindex(all_dates, fill_value=0).reset_index()
+        predicted_df = predicted_df.set_index('date').reindex(all_dates, fill_value=0).reset_index()
+
+        # Rename the reindexed column back to 'date'
+        current_df = current_df.rename(columns={'index': 'date'})
+        predicted_df = predicted_df.rename(columns={'index': 'date'})
+
+        # Merge datasets
+        combined_data = pd.merge(
+            current_df,
+            predicted_df,
+            on='date',
+            how='outer'
+        ).sort_values(by='date')
+
+        # Debug combined data
+        st.write("Combined DataFrame Preview:", combined_data.head())
+        st.write("Combined DataFrame Preview:", combined_data.tail(10))
+        st.write("Combined Data Columns:", combined_data.columns)
+
+        return combined_data
+    else:
+        return None
+
+
 # Initialize session state for navigation
 if "page" not in st.session_state:
     st.session_state.page = "Home"
@@ -97,7 +167,7 @@ st.sidebar.markdown('<h1 class="sidebar-title">COVID Forecast Hub</h1>', unsafe_
 with st.sidebar:
     selected = option_menu (
         menu_title="Main Menu",
-        options=["Home", "Current Cases", "Predictions", "Vaccination Info"],
+        options=["Home", "Current Cases", "Predictions",  "Cases Overview", "COVID-19 Wellness Center", "Vaccination Info",],
     )
 
 if selected == "Home":
@@ -108,6 +178,10 @@ if selected == "Predictions":
     st.session_state.page = "Predictions"
 if selected == "Vaccination Info":
     st.session_state.page = "Vaccination Info"
+if selected == "Cases Overview":
+    st.session_state.page = "Cases Overview"
+if selected == "COVID-19 Wellness Center":
+    st.session_state.page = "COVID-19 Wellness Center"
 
 
 # Determine the current page
@@ -158,40 +232,6 @@ if page == "Home":
     st.write("")
     st.write("")
 
-    # col1, col2, col3 = st.columns(3)
-    #
-    # with col1:
-    #     st.markdown(
-    #         """
-    #         <div style='background-color: #f4f4f4; padding: 20px; border-radius: 10px;'>
-    #             <h3 style='color: #0073e6;'>📊 Total Cases</h3>
-    #             <p style='font-size: 18px; color: #333;'>{}</p>
-    #         </div>
-    #         """.format(total_cases),
-    #         unsafe_allow_html=True
-    #     )
-    #
-    # with col2:
-    #     st.markdown(
-    #         """
-    #         <div style='background-color: #ffe6e6; padding: 20px; border-radius: 10px;'>
-    #             <h3 style='color: #ff4d4d;'>💀 Total Deaths</h3>
-    #             <p style='font-size: 18px; color: #333;'>{}</p>
-    #         </div>
-    #         """.format(total_death),
-    #         unsafe_allow_html=True
-    #     )
-    #
-    # with col3:
-    #     st.markdown(
-    #         """
-    #         <div style='background-color:  #e6ffe6; padding: 20px; border-radius: 10px;'>
-    #             <h3 style='color: #28a745;'>🏥 Total Recovered</h3>
-    #             <p style='font-size: 18px; color: #333;'>{}</p>
-    #         </div>
-    #         """.format(total_recovered),
-    #         unsafe_allow_html=True
-    #     )
 
     # Load the GeoJSON file
     with open("/Users/nursahirazhamri/Desktop/Covid19/streamlit/malaysia_state.geojson", "r") as f:
@@ -656,3 +696,249 @@ elif page == "Vaccination Info":
     st.markdown("- [Malaysia MoH](https://covid-19.moh.gov.my/)")
     st.markdown("- [NPRA Vaccine Information](https://npra.gov.my/)")
 
+
+
+elif page == "Cases Overview":
+    st.title("COVID-19 Cases Overview")
+
+    combined_data = get_combined_cases()
+
+    if combined_data is not None:
+        # Handle missing columns
+        if 'cases_current' not in combined_data.columns:
+            combined_data['cases_current'] = 0
+
+        if 'cases_predicted' not in combined_data.columns:
+            combined_data['cases_predicted'] = 0
+
+        # Ensure 'date' column is in datetime format
+        combined_data['date'] = pd.to_datetime(combined_data['date'], errors='coerce')
+        combined_data = combined_data.dropna(subset=['date'])  # Remove rows with invalid dates
+
+        # Plot combined graph
+        fig = px.line(
+            combined_data,
+            x="date",
+            y=["cases_current", "cases_predicted"],
+            labels={"value": "Cases", "variable": "Type"},
+            title="Current and Predicted COVID-19 Cases",
+            height=600,
+            width=900
+        )
+        fig.update_layout(legend_title="Case Type")
+        st.plotly_chart(fig)
+
+        # Add optional filters for date range
+        st.markdown("---")
+        st.markdown('<h2 style="font-weight: bold;">Filter by Date Range</h2>', unsafe_allow_html=True)
+        start_date = st.date_input("Start Date:", value=combined_data['date'].min().date())
+        end_date = st.date_input("End Date:", value=combined_data['date'].max().date())
+
+        # Convert start_date and end_date to pd.Timestamp
+        start_date = pd.Timestamp(start_date)
+        end_date = pd.Timestamp(end_date)
+
+        # Filter data based on selected range
+        filtered_data = combined_data[
+            (combined_data['date'] >= start_date) &
+            (combined_data['date'] <= end_date)
+        ]
+
+        # Debug filtered data
+        st.write("Filtered Data Preview:", filtered_data.head())
+
+        # Plot filtered graph
+        if not filtered_data.empty:
+            st.write(f"Filtered Data ({start_date.date()} to {end_date.date()}):")
+            fig_filtered = px.line(
+                filtered_data,
+                x="date",
+                y=["cases_current", "cases_predicted"],
+                labels={"value": "Cases", "variable": "Type"},
+                title="Filtered Current and Predicted COVID-19 Cases",
+                height=600,
+                width=900
+            )
+            fig_filtered.update_layout(legend_title="Case Type")
+            st.plotly_chart(fig_filtered)
+        else:
+            st.warning("No data available for the selected date range.")
+    else:
+        st.error("Failed to load cases data.")
+
+
+# COVID-19 Wellness Center Page
+elif page == "COVID-19 Wellness Center":
+    st.title("COVID-19 Wellness Center")
+    st.markdown("---")
+
+    # Introduction about COVID-19
+    st.header("What is COVID-19 ?")
+    st.write(
+        """
+        COVID-19 is a disease caused by the SARS-CoV-2 virus, which began spreading in 2019. 
+        It spreads easily from person to person, mainly through tiny droplets released when an infected person coughs, sneezes, or talks. 
+        It can also spread by touching surfaces that have the virus on them.
+
+        People infected with COVID-19 may have symptoms like fever, cough, or tiredness. Some may feel very sick, 
+        while others might not feel sick at all but can still pass the virus to others.
+
+        Understanding how COVID-19 spreads helps us take the right steps to protect ourselves and those around us.
+        """
+    )
+    st.markdown("---")
+
+    # Prevention Tips
+    st.header("COVID-19 Prevention Tips")
+    st.markdown(
+        """
+        <p style="font-size: 20px; font-weight: bold; color:#FF5733;">
+            Here are some steps we can take to prevent COVID-19 from spreading and protect ourselves and others.
+        </p>
+        """,
+        unsafe_allow_html=True
+    )
+
+    st.write(" ")
+    st.write(" ")
+
+    col1, col2 = st.columns([1, 5])  # Two columns: one for image, one for text
+    with col1:
+        st.image("streamlit/images/3613205.jpg", use_container_width=True)  # Adjust the width as needed
+    with col2:
+        st.markdown(
+            """
+            <div style="text-align: left;">
+                <h3>Wear a Mask</h3>
+                <p style="font-size: 18px;">Use a face mask in crowded or enclosed spaces to reduce the spread of COVID-19.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    col1, col2 = st.columns([5, 1])
+    with col1:
+        st.markdown(
+            """
+            <div style="text-align: right;">
+                <h3>Wash Your Hands</h3>
+                <p style="font-size: 18px;">Wash hands frequently with soap and water or use hand sanitizer to remove germs.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    with col2:
+
+        st.image("streamlit/images/42944.jpg", use_container_width=True)  # Replace with actual URL or local file
+
+
+    col1, col2 = st.columns([1, 5])
+    with col1:
+        st.image("streamlit/images/3706837.jpg", use_container_width=True)  # Replace with actual image URL
+    with col2:
+        st.markdown(
+            """
+            <div style="text-align: left;">
+                <h3>Keep a Safe Distance</h3>
+                <p style="font-size: 18px;">Stay at least 1 meter (3 feet) apart from others to avoid infection.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+
+    col1, col2 = st.columns([5, 1])
+    with col1:
+        st.markdown(
+            """
+            <div style="text-align: right;">
+                <h3>Avoid Touching Your Face</h3>
+                <p style="font-size: 18px;">Do not touch your eyes, nose, or mouth with unwashed hands.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    with col2:
+        st.image("streamlit/images/6621.jpg",use_container_width=True)  # Replace with actual image
+
+    col1, col2 = st.columns([1, 5])
+    with col1:
+        st.image("streamlit/images/5277102.jpg", use_container_width=True)  # Replace with actual image
+    with col2:
+        st.markdown(
+            """
+            <div style="text-align: left;">
+                <h3>Get Vaccinated</h3>
+                <p style="font-size: 18px;">Stay up-to-date with COVID-19 vaccines and booster shots for protection.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    col1, col2 = st.columns([5, 1])
+    with col1:
+        st.markdown(
+            """
+            <div style="text-align: right;">
+                <h3>Avoid Handshakes & Hugs</h3>
+                <p style="font-size: 18px;">Use alternative greetings like a wave or nod to reduce close contact.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    with col2:
+        st.image("streamlit/images/z13z_eu2x_210421.jpg", use_container_width=True)  # Replace with actual image
+
+    col1, col2 = st.columns([1, 5])
+    with col1:
+        st.image("streamlit/images/2302_i402_005_s_m004_c13_food_sontainers_and_zero_waste_storage_composition.jpg", use_container_width=True)  # Replace with actual image
+    with col2:
+        st.markdown(
+            """
+            <div style="text-align: left;">
+                <h3>Eat Healthy & Stay Hydrated</h3>
+                <p style="font-size: 18px;">Boost your immune system with nutritious food and plenty of water.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+
+    col1, col2 = st.columns([5, 1])
+    with col1:
+        st.markdown(
+            """
+            <div style="text-align: right;">
+                <h3>Monitor Your Health</h3>
+                <p style="font-size: 18px;">Check for symptoms daily and get tested if you feel unwell.</p>
+            </div>
+            """,
+            unsafe_allow_html=True
+        )
+    with col2:
+        st.image("streamlit/images/Wavy_Lst-22_Single-03.jpg", use_container_width=True)  # Replace with actual image
+
+    st.markdown("---")
+
+    # Guidelines for Managing Symptoms
+    st.markdown('<h3 style="color:#FF5733;">What to Do if You Test Positive</h3>', unsafe_allow_html=True)
+    st.write(" ")
+    with st.expander("Managing Mild COVID-19 Symptoms"):
+        st.write(
+            """
+            If you have mild symptoms or test positive for COVID-19:
+            - Isolate yourself from others in a well-ventilated room.
+            - Monitor your symptoms and stay hydrated.
+            - Take fever-reducing medications like paracetamol if needed.
+            - Rest as much as possible to allow your body to recover.
+            """
+        )
+    with st.expander("When to Seek Medical Help"):
+        st.write(
+            """
+            Contact a healthcare provider or go to the hospital if you experience:
+            - Difficulty breathing or shortness of breath.
+            - Persistent chest pain or pressure.
+            - Confusion or inability to wake/stay awake.
+            - Bluish lips or face.
+            """
+        )

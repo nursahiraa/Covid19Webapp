@@ -2,6 +2,7 @@ import streamlit as st
 import requests
 import pandas as pd
 import plotly.express as px  # For interactive graphs
+import plotly.graph_objects as go
 from streamlit_option_menu import option_menu
 import json
 from datetime import date
@@ -97,24 +98,21 @@ def get_combined_cases():
     response = requests.get(f"{BASE_URL}current_cases/")
     if response.status_code == 200:
         current_data = response.json().get('current_cases', [])
-        st.write("Current Data Preview: sampai sini")
 
     # Fetch predicted cases data from Django
     response = requests.get(f"{BASE_URL}predict/")
     if response.status_code == 200:
         predicted_data = response.json().get('predictions', [])
-        st.write("predicted Data Preview: sampai sini")
 
 
     if current_data and predicted_data:
         # Create DataFrames from the fetched data
         current_df = pd.DataFrame(current_data)  # Directly use the list
         predicted_df = pd.DataFrame(predicted_data)  # Directly use the list
-        st.write("predicted Data Preview: sampai sini 2")
 
-        # Debug data
-        st.write("Current Data Preview:", current_df.head())
-        st.write("Predicted Data Preview:", predicted_df.head())
+        # # Debug data
+        # st.write("Current Data Preview:", current_df.head())
+        # st.write("Predicted Data Preview:", predicted_df.head())
 
         # Ensure proper datetime format
         current_df['date'] = pd.to_datetime(current_df['date'], errors='coerce')
@@ -147,10 +145,10 @@ def get_combined_cases():
             how='outer'
         ).sort_values(by='date')
 
-        # Debug combined data
-        st.write("Combined DataFrame Preview:", combined_data.head())
-        st.write("Combined DataFrame Preview:", combined_data.tail(10))
-        st.write("Combined Data Columns:", combined_data.columns)
+        # # Debug combined data
+        # st.write("Combined DataFrame Preview:", combined_data.head())
+        # st.write("Combined DataFrame Preview:", combined_data.tail(10))
+        # st.write("Combined Data Columns:", combined_data.columns)
 
         return combined_data
     else:
@@ -167,21 +165,22 @@ st.sidebar.markdown('<h1 class="sidebar-title">COVID Forecast Hub</h1>', unsafe_
 with st.sidebar:
     selected = option_menu (
         menu_title="Main Menu",
-        options=["Home", "Current Cases", "Predictions",  "Cases Overview", "COVID-19 Wellness Center", "Vaccination Info",],
+        options=["Home", "Cases Overview", "COVID-19 Wellness Center", "Vaccination Info",],
     )
 
 if selected == "Home":
     st.session_state.page = "Home"
-if selected == "Current Cases":
-    st.session_state.page = "Current Cases"
-if selected == "Predictions":
-    st.session_state.page = "Predictions"
-if selected == "Vaccination Info":
-    st.session_state.page = "Vaccination Info"
+# if selected == "Current Cases":
+#     st.session_state.page = "Current Cases"
+# if selected == "Predictions":
+#     st.session_state.page = "Predictions"
 if selected == "Cases Overview":
     st.session_state.page = "Cases Overview"
 if selected == "COVID-19 Wellness Center":
     st.session_state.page = "COVID-19 Wellness Center"
+if selected == "Vaccination Info":
+    st.session_state.page = "Vaccination Info"
+
 
 
 # Determine the current page
@@ -334,172 +333,308 @@ if page == "Home":
     # st.dataframe(map_data)
 
 
-# **1. Current Cases Page**
-elif page == "Current Cases":
-    st.title("Current COVID-19 Cases")
+#
+# elif page == "Current Cases":
+#     st.title("Current COVID-19 Cases")
+#
+#     # Fetch all current cases data from Django
+#     response = requests.get(f"{BASE_URL}current_cases/")
+#     if response.status_code == 200:
+#         current_data = response.json().get('current_cases', [])
+#         if current_data:
+#             # Convert data to DataFrame
+#             df = pd.DataFrame(current_data)
+#             df['date'] = pd.to_datetime(df['date'], errors='coerce')  # Ensure proper datetime format
+#
+#             # Plot the graph using Plotly
+#             # st.write("Graph of Current Cases")
+#             if len(df) < 2:
+#                 # Add dummy data point if only one row exists
+#                 st.warning("Not enough data to generate a meaningful graph. Adding a dummy data point.")
+#                 last_date = df['date'].iloc[0]
+#                 dummy_date = last_date - pd.Timedelta(days=1)
+#                 dummy_cases = df['cases'].iloc[0]  # Use the same case count for simplicity
+#                 df = pd.concat([df, pd.DataFrame({'date': [dummy_date], 'cases': [dummy_cases]})])
+#
+#             fig = px.line(
+#                 df,
+#                 x="date",
+#                 y="cases",
+#                 title="Current COVID-19 Cases",
+#                 width=900,  # Adjust width of the graph
+#                 height=600  # Adjust height of the graph
+#             )
+#             st.plotly_chart(fig)
+#             st.markdown("---")
+#             # Add a date input for user to query cases on a specific date
+#             st.markdown('<h2 style="font-weight: bold;">Cases on a Specific Date</h2>', unsafe_allow_html=True)
+#             st.write("")
+#             # Create a styled container for the form
+#             st.markdown(
+#                 """
+#                 <div style='background-color: #f9f9f9; padding: 15px; border-radius: 10px; margin-top: 20px;'>
+#                     <h3 style='color:#FF5733;'>📅 Select a Date</h3>
+#                 """,
+#                 unsafe_allow_html=True,
+#             )
+#
+#             # Add a date input and submit button
+#             selected_date = st.date_input("Choose a date:", value=date.today(), key="date_input",
+#                                           label_visibility="collapsed")
+#
+#             if st.button("Submit"):
+#                 # Simulated case prediction logic
+#                 if selected_date:
+#                 # Filter data for the selected date
+#                         selected_date = pd.Timestamp(selected_date)  # Convert to Timestamp
+#                         filtered_data = df[df['date'] == selected_date]
+#
+#                         if not filtered_data.empty:
+#                             # st.write(f"Cases on {selected_date.date()}: {filtered_data['cases'].iloc[0]}")
+#                             st.markdown(
+#                                 f"""<div style='background-color: #f9f9f9; padding: 20px; border-radius: 10px; margin-top: 20px;'>
+#                                      <h3 style='color: #28a745;'>Cases Results</h3>
+#                                      <p style='color: Black;'><b>Date:</b> {selected_date.date()}</p>
+#                                      <p style='color: Black;'><b>Current Cases:</b>  {filtered_data['cases'].iloc[0]}</p></div>""",unsafe_allow_html=True,)
+#                         else:
+#                             st.markdown(
+#                             """
+#                             <div style='background-color: #fff3cd; padding: 20px; border-radius: 10px; margin-top: 20px;'>
+#                                 <p style='color: #856404;'>No data available. Please choose a valid date from the past.</p>
+#                             </div>
+#                                  """,
+#                                     unsafe_allow_html=True,)
+#         else:
+#             st.write("No data available.")
+#     else:
+#         st.error("Failed to fetch current cases.")
+#
+#
+#
+#
+#
+#
+#
+# # **2. Predictions Page**
+# elif page == "Predictions":
+#     st.title("Predicted COVID-19 Cases")
+#
+#     # Fetch predicted cases data from Django
+#     response = requests.get(f"{BASE_URL}predict/")
+#     if response.status_code == 200:
+#         raw_predictions = response.json().get('predictions', [])
+#
+#         if raw_predictions:
+#             # Convert raw predictions to DataFrame
+#             df = pd.DataFrame(raw_predictions)
+#             df['date'] = pd.to_datetime(df['date'])  # Ensure dates are in datetime format
+#
+#             # Handle missing dates by reindexing to a full date range
+#             start_date = df['date'].min()
+#             end_date = df['date'].max()
+#             full_date_range = pd.date_range(start=start_date, end=end_date)
+#             df = df.set_index('date').reindex(full_date_range, fill_value=0).reset_index()
+#             df.columns = ['date', 'predicted_cases']  # Rename columns
+#
+#             # Add dummy data point if there’s only one row
+#             if len(df) < 2:
+#                 last_date = df['date'].iloc[0]
+#                 dummy_date = last_date - pd.Timedelta(days=1)
+#                 dummy_cases = df['predicted_cases'].iloc[0]  # Use the same case count for simplicity
+#                 df = pd.concat([df, pd.DataFrame({'date': [dummy_date], 'predicted_cases': [dummy_cases]})])
+#
+#             # Plot the graph using Plotly
+#             # st.write("Graph of Predicted Cases")
+#             fig = px.line(
+#                 df,
+#                 x="date",
+#                 y="predicted_cases",
+#                 # title="Predicted COVID-19 Cases",
+#                 width=900,  # Adjust width of the graph
+#                 height=600  # Adjust height of the graph
+#             )
+#             st.plotly_chart(fig)
+#
+#             # Allow user to input a date for prediction
+#             st.markdown("---")
+#             st.markdown('<h2 style="font-weight: bold;">Cases on a Specific Date</h2>', unsafe_allow_html=True)
+#             st.write("")
+#             # Create a styled container for the form
+#             st.markdown(
+#                 """
+#                 <div style='background-color: #f9f9f9; padding: 15px; border-radius: 10px; margin-top: 20px;'>
+#                     <h3 style='color:#FF5733;'>📅 Select a Date</h3>
+#                 """,
+#                 unsafe_allow_html=True,
+#             )
+#
+#             # Add a date input and submit button
+#             selected_date = st.date_input("Choose a date:", value=date.today(), key="date_input",
+#                                           label_visibility="collapsed")
+#
+#             # Button to fetch prediction for the selected date
+#             if st.button("Submit"):
+#                 if selected_date:
+#                     # Filter data for the selected date
+#                     selected_date = pd.Timestamp(selected_date)  # Convert to Timestamp
+#                     filtered_data = df[df['date'] == selected_date]
+#
+#                     if not filtered_data.empty:
+#                         st.markdown(
+#                             f"""<div style='background-color: #f9f9f9; padding: 20px; border-radius: 10px; margin-top: 20px;'>
+#                                  <h3 style='color: #28a745;'>Prediction Results</h3>
+#                                  <p style='color: Black;'><b>Date:</b> {selected_date.date()}</p>
+#                                  <p style='color: Black;'><b>Predicted Cases:</b>  {filtered_data['predicted_cases'].iloc[0]}</p></div>""",
+#                             unsafe_allow_html=True, )
+#                     else:
+#                         st.markdown(
+#                             """
+#                             <div style='background-color: #fff3cd; padding: 20px; border-radius: 10px; margin-top: 20px;'>
+#                                 <p style='color: #856404;'>No prediction available. Predictions can only be made for dates within 21 days from today.</p>
+#                             </div>
+#                                  """,
+#                             unsafe_allow_html=True, )
+#
+#         else:
+#             st.write("No predictions available.")
+#     else:
+#         st.error("Failed to fetch predictions.")
+#
 
-    # Fetch all current cases data from Django
-    response = requests.get(f"{BASE_URL}current_cases/")
-    if response.status_code == 200:
-        current_data = response.json().get('current_cases', [])
-        if current_data:
-            # Convert data to DataFrame
-            df = pd.DataFrame(current_data)
-            df['date'] = pd.to_datetime(df['date'], errors='coerce')  # Ensure proper datetime format
 
-            # Plot the graph using Plotly
-            # st.write("Graph of Current Cases")
-            if len(df) < 2:
-                # Add dummy data point if only one row exists
-                st.warning("Not enough data to generate a meaningful graph. Adding a dummy data point.")
-                last_date = df['date'].iloc[0]
-                dummy_date = last_date - pd.Timedelta(days=1)
-                dummy_cases = df['cases'].iloc[0]  # Use the same case count for simplicity
-                df = pd.concat([df, pd.DataFrame({'date': [dummy_date], 'cases': [dummy_cases]})])
 
-            fig = px.line(
-                df,
-                x="date",
-                y="cases",
-                title="Current COVID-19 Cases",
-                width=900,  # Adjust width of the graph
-                height=600  # Adjust height of the graph
+elif page == "Cases Overview":
+    st.title("COVID-19 Cases Overview")
+
+    combined_data = get_combined_cases()
+
+    if combined_data is not None:
+        # Handle missing columns
+        if 'cases_current' not in combined_data.columns:
+            combined_data['cases_current'] = 0
+
+        if 'cases_predicted' not in combined_data.columns:
+            combined_data['cases_predicted'] = 0
+
+        # Ensure 'date' column is in datetime format
+        combined_data['date'] = pd.to_datetime(combined_data['date'], errors='coerce')
+        combined_data = combined_data.dropna(subset=['date'])  # Remove rows with invalid dates
+
+        st.write("")
+
+
+        # st.markdown("### Adjust Date Range Below")
+
+        st.markdown('<p style="color:#FF5733;  font-weight: bold; font-size: 20px; margin-bottom: -40px; ">Start Date:</p>', unsafe_allow_html=True)
+        start_date = st.date_input("", value=combined_data['date'].min().date(), key="start_date")
+
+        st.markdown('<p style="color:#FF5733;  font-weight: bold; font-size: 20px; margin-bottom: -40px; ">End Date:</p>', unsafe_allow_html=True)
+        end_date = st.date_input("", value=combined_data['date'].max().date(), key="end_date")
+
+
+        # Convert start_date and end_date to pd.Timestamp
+        start_date = pd.Timestamp(start_date)
+        end_date = pd.Timestamp(end_date)
+
+        is_start_date_invalid = start_date < combined_data['date'].min()
+        is_end_date_invalid = end_date > combined_data['date'].max()
+
+        if is_start_date_invalid:
+            st.warning(
+                f"⚠️ The selected start date ({start_date.date()}) is earlier than the earliest date in the data ({combined_data['date'].min().date()}). Please select a valid date."
             )
-            st.plotly_chart(fig)
-            st.markdown("---")
-            # Add a date input for user to query cases on a specific date
-            st.markdown('<h2 style="font-weight: bold;">Cases on a Specific Date</h2>', unsafe_allow_html=True)
-            st.write("")
-            # Create a styled container for the form
-            st.markdown(
-                """
-                <div style='background-color: #f9f9f9; padding: 15px; border-radius: 10px; margin-top: 20px;'>
-                    <h3 style='color:#FF5733;'>📅 Select a Date</h3>
-                """,
-                unsafe_allow_html=True,
+
+        if is_end_date_invalid:
+            st.warning(
+                f"⚠️ The selected end date ({end_date.date()}) is later than the latest date in the data ({combined_data['date'].max().date()}). Please select a valid date."
             )
 
-            # Add a date input and submit button
-            selected_date = st.date_input("Choose a date:", value=date.today(), key="date_input",
-                                          label_visibility="collapsed")
+        if not is_start_date_invalid and not is_end_date_invalid:
+            # Filter data based on selected range
+            filtered_data = combined_data[
+                (combined_data['date'] >= start_date) &
+                (combined_data['date'] <= end_date)
+                ]
+            if not filtered_data.empty:
+                # st.write(f"Filtered Data ({start_date.date()} to {end_date.date()}):")
 
-            if st.button("Submit"):
-                # Simulated case prediction logic
-                if selected_date:
+                fig_full = go.Figure()
+                fig_full.add_trace(go.Scatter(
+                    x=filtered_data["date"],
+                    y=filtered_data["cases_current"],
+                    mode="lines",
+                    name="Current Cases",
+                    line=dict(color="#1E90FF", width=2)
+                ))
+                fig_full.add_trace(go.Scatter(
+                    x=filtered_data["date"],
+                    y=filtered_data["cases_predicted"],
+                    mode="lines",
+                    name="Predicted Cases",
+                    line=dict(color="#FF5733", width=2)
+                ))
+
+                fig_full.update_layout(
+                    title="Current and Predicted COVID-19 Cases",
+                    xaxis_title="Date",
+                    yaxis_title="Cases",
+                    legend_title="Case Type",
+                    height=650,
+                    width=1000
+                )
+                st.plotly_chart(fig_full)
+            else:
+                st.warning("⚠️ No data available for the selected date range.")
+
+
+        st.markdown("---")
+
+        st.markdown('<h2 style="font-weight: bold;">Cases on a Specific Date</h2>', unsafe_allow_html=True)
+        st.write("")
+        # Create a styled container for the form
+        st.markdown(
+            """
+            <div style='background-color: #f9f9f9; padding: 15px; border-radius: 10px; margin-top: 20px;'>
+                <h3 style='color:#FF5733;'>📅 Select a Date</h3>
+            """,
+            unsafe_allow_html=True,
+        )
+
+        # Add a date input and submit button
+        selected_date = st.date_input("Choose a date:", value=date.today(), key="date_input",
+                                      label_visibility="collapsed")
+
+        # Button to fetch prediction for the selected date
+        if st.button("Submit"):
+            if selected_date:
                 # Filter data for the selected date
-                        selected_date = pd.Timestamp(selected_date)  # Convert to Timestamp
-                        filtered_data = df[df['date'] == selected_date]
+                selected_date = pd.Timestamp(selected_date)  # Convert to Timestamp
+                filtered_data = combined_data[combined_data['date'] == selected_date]
 
-                        if not filtered_data.empty:
-                            # st.write(f"Cases on {selected_date.date()}: {filtered_data['cases'].iloc[0]}")
-                            st.markdown(
-                                f"""<div style='background-color: #f9f9f9; padding: 20px; border-radius: 10px; margin-top: 20px;'>
-                                     <h3 style='color: #28a745;'>Cases Results</h3>
-                                     <p style='color: Black;'><b>Date:</b> {selected_date.date()}</p>
-                                     <p style='color: Black;'><b>Current Cases:</b>  {filtered_data['cases'].iloc[0]}</p></div>""",unsafe_allow_html=True,)
-                        else:
-                            st.markdown(
-                            """
-                            <div style='background-color: #fff3cd; padding: 20px; border-radius: 10px; margin-top: 20px;'>
-                                <p style='color: #856404;'>No data available. Please choose a valid date from the past.</p>
-                            </div>
-                                 """,
-                                    unsafe_allow_html=True,)
-        else:
-            st.write("No data available.")
+                if not filtered_data.empty:
+                    st.markdown(
+                        f"""<div style='background-color: #f9f9f9; padding: 20px; border-radius: 10px; margin-top: 20px;'>
+                                         <h3 style='color: #28a745;'>Prediction Results</h3>
+                                         <p style='color: Black;'><b>Date:</b> {selected_date.date()}</p>
+                                         <p style='color: Black;'><b>Predicted Cases:</b>  {filtered_data['cases_predicted'].iloc[0]}</p>
+                                         <h3 style='color: #28a745;'>Current Cases Results</h3>
+                                        <p style='color: Black;'><b>Date:</b> {selected_date.date()}</p>
+                                        <p style='color: Black;'><b>Current Cases:</b>  {filtered_data['cases_current'].iloc[0]}</p></div>""",
+                        unsafe_allow_html=True, )
+                else:
+                    st.markdown(
+                        """
+                        <div style='background-color: #fff3cd; padding: 20px; border-radius: 10px; margin-top: 20px;'>
+                            <p style='color: #856404;'>No prediction available. Predictions can only be made for dates within 21 days from today.</p>
+                        </div>
+                             """,
+                        unsafe_allow_html=True, )
+
+
     else:
-        st.error("Failed to fetch current cases.")
+        st.error("Failed to load cases data.")
 
 
-
-
-
-
-
-# **2. Predictions Page**
-elif page == "Predictions":
-    st.title("Predicted COVID-19 Cases")
-
-    # Fetch predicted cases data from Django
-    response = requests.get(f"{BASE_URL}predict/")
-    if response.status_code == 200:
-        raw_predictions = response.json().get('predictions', [])
-
-        if raw_predictions:
-            # Convert raw predictions to DataFrame
-            df = pd.DataFrame(raw_predictions)
-            df['date'] = pd.to_datetime(df['date'])  # Ensure dates are in datetime format
-
-            # Handle missing dates by reindexing to a full date range
-            start_date = df['date'].min()
-            end_date = df['date'].max()
-            full_date_range = pd.date_range(start=start_date, end=end_date)
-            df = df.set_index('date').reindex(full_date_range, fill_value=0).reset_index()
-            df.columns = ['date', 'predicted_cases']  # Rename columns
-
-            # Add dummy data point if there’s only one row
-            if len(df) < 2:
-                last_date = df['date'].iloc[0]
-                dummy_date = last_date - pd.Timedelta(days=1)
-                dummy_cases = df['predicted_cases'].iloc[0]  # Use the same case count for simplicity
-                df = pd.concat([df, pd.DataFrame({'date': [dummy_date], 'predicted_cases': [dummy_cases]})])
-
-            # Plot the graph using Plotly
-            # st.write("Graph of Predicted Cases")
-            fig = px.line(
-                df,
-                x="date",
-                y="predicted_cases",
-                # title="Predicted COVID-19 Cases",
-                width=900,  # Adjust width of the graph
-                height=600  # Adjust height of the graph
-            )
-            st.plotly_chart(fig)
-
-            # Allow user to input a date for prediction
-            st.markdown("---")
-            st.markdown('<h2 style="font-weight: bold;">Cases on a Specific Date</h2>', unsafe_allow_html=True)
-            st.write("")
-            # Create a styled container for the form
-            st.markdown(
-                """
-                <div style='background-color: #f9f9f9; padding: 15px; border-radius: 10px; margin-top: 20px;'>
-                    <h3 style='color:#FF5733;'>📅 Select a Date</h3>
-                """,
-                unsafe_allow_html=True,
-            )
-
-            # Add a date input and submit button
-            selected_date = st.date_input("Choose a date:", value=date.today(), key="date_input",
-                                          label_visibility="collapsed")
-
-            # Button to fetch prediction for the selected date
-            if st.button("Submit"):
-                if selected_date:
-                    # Filter data for the selected date
-                    selected_date = pd.Timestamp(selected_date)  # Convert to Timestamp
-                    filtered_data = df[df['date'] == selected_date]
-
-                    if not filtered_data.empty:
-                        st.markdown(
-                            f"""<div style='background-color: #f9f9f9; padding: 20px; border-radius: 10px; margin-top: 20px;'>
-                                 <h3 style='color: #28a745;'>Prediction Results</h3>
-                                 <p style='color: Black;'><b>Date:</b> {selected_date.date()}</p>
-                                 <p style='color: Black;'><b>Predicted Cases:</b>  {filtered_data['predicted_cases'].iloc[0]}</p></div>""",
-                            unsafe_allow_html=True, )
-                    else:
-                        st.markdown(
-                            """
-                            <div style='background-color: #fff3cd; padding: 20px; border-radius: 10px; margin-top: 20px;'>
-                                <p style='color: #856404;'>No prediction available. Predictions can only be made for dates within 21 days from today.</p>
-                            </div>
-                                 """,
-                            unsafe_allow_html=True, )
-
-        else:
-            st.write("No predictions available.")
-    else:
-        st.error("Failed to fetch predictions.")
 
 
 # **3. Vaccination Info Page**
@@ -698,73 +833,6 @@ elif page == "Vaccination Info":
 
 
 
-elif page == "Cases Overview":
-    st.title("COVID-19 Cases Overview")
-
-    combined_data = get_combined_cases()
-
-    if combined_data is not None:
-        # Handle missing columns
-        if 'cases_current' not in combined_data.columns:
-            combined_data['cases_current'] = 0
-
-        if 'cases_predicted' not in combined_data.columns:
-            combined_data['cases_predicted'] = 0
-
-        # Ensure 'date' column is in datetime format
-        combined_data['date'] = pd.to_datetime(combined_data['date'], errors='coerce')
-        combined_data = combined_data.dropna(subset=['date'])  # Remove rows with invalid dates
-
-        # Plot combined graph
-        fig = px.line(
-            combined_data,
-            x="date",
-            y=["cases_current", "cases_predicted"],
-            labels={"value": "Cases", "variable": "Type"},
-            title="Current and Predicted COVID-19 Cases",
-            height=600,
-            width=900
-        )
-        fig.update_layout(legend_title="Case Type")
-        st.plotly_chart(fig)
-
-        # Add optional filters for date range
-        st.markdown("---")
-        st.markdown('<h2 style="font-weight: bold;">Filter by Date Range</h2>', unsafe_allow_html=True)
-        start_date = st.date_input("Start Date:", value=combined_data['date'].min().date())
-        end_date = st.date_input("End Date:", value=combined_data['date'].max().date())
-
-        # Convert start_date and end_date to pd.Timestamp
-        start_date = pd.Timestamp(start_date)
-        end_date = pd.Timestamp(end_date)
-
-        # Filter data based on selected range
-        filtered_data = combined_data[
-            (combined_data['date'] >= start_date) &
-            (combined_data['date'] <= end_date)
-        ]
-
-        # Debug filtered data
-        st.write("Filtered Data Preview:", filtered_data.head())
-
-        # Plot filtered graph
-        if not filtered_data.empty:
-            st.write(f"Filtered Data ({start_date.date()} to {end_date.date()}):")
-            fig_filtered = px.line(
-                filtered_data,
-                x="date",
-                y=["cases_current", "cases_predicted"],
-                labels={"value": "Cases", "variable": "Type"},
-                title="Filtered Current and Predicted COVID-19 Cases",
-                height=600,
-                width=900
-            )
-            fig_filtered.update_layout(legend_title="Case Type")
-            st.plotly_chart(fig_filtered)
-        else:
-            st.warning("No data available for the selected date range.")
-    else:
-        st.error("Failed to load cases data.")
 
 
 # COVID-19 Wellness Center Page

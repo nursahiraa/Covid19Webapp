@@ -331,6 +331,46 @@ if page == "Home":
     # # Show additional data (optional)
     # st.subheader(f"COVID-19 Cases on {latest_date.date()}")
     # st.dataframe(map_data)
+    # Sum cases for each state
+    # Sum cases for each state
+    state_wise_cases = covid_data.groupby('state')['cases_new'].sum().reset_index()
+
+    # Sort states by total cases (descending)
+    state_wise_cases = state_wise_cases.sort_values(by='cases_new', ascending=False)
+
+    # Create bar chart with orange-colored bars
+    fig_bar = px.bar(
+        state_wise_cases,
+        x='state',
+        y='cases_new',
+        labels={'cases_new': 'Total Cases', 'state': 'State'},
+        title="Total COVID-19 Cases by State in Malaysia",
+        # text_auto=True  # Display case count on bars
+    )
+
+    # Customize bar colors to orange
+    fig_bar.update_traces(marker_color="#1E3A8A")  # Orange color for bars
+
+    # Improve layout for readability
+    fig_bar.update_layout(
+        title={
+            'text': "Total COVID-19 Cases by State in Malaysia",
+            'x': 0.65,  # Center-align title
+            'xanchor': 'right',
+            'yanchor': 'top',
+            'font': {'size': 33, 'color': "#FF5733"}  # Increase title font size
+        },
+        xaxis_title="State",
+        yaxis_title="Total Cases",
+        height=700,
+        width=1000,
+        margin=dict(l=50, r=20, t=80, b=150),  # Adjust bottom margin for rotated labels
+        xaxis_tickangle=-45,  # Rotate x-axis labels for better readability
+    )
+
+    # Display the bar chart
+    st.plotly_chart(fig_bar, use_container_width=True)
+
 
 
 #

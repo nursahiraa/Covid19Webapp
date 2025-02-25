@@ -30,6 +30,10 @@ Ensure you have the following installed:
   ```bash
   streamlit --version
   ```
+- **MySQL**: 9.0.1 → Verify with:
+  ```bash
+  mysql --version
+  ```
 - **Virtual Environment (venv)** → Ensure `.venv` is activated:
   ```bash
   source .venv/bin/activate  # macOS/Linux

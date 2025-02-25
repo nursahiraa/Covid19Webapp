@@ -10,6 +10,7 @@ To visualise predictions, it integrates a **Django backend (Django REST Framewo
 - Predict COVID-19 cases using **hybrid models** (Random Forest + LSTM).
 - **Django REST API** for serving predictions.
 - **Streamlit-based Frontend** for visualisation.
+- **Choropleth map & time-series graphs** using **Plotly**.
 - **MySQL Database** to store actual and predicted values.
 
 ---
@@ -95,6 +96,15 @@ streamlit run streamlit/app.py
 ```
 
 This will launch the visualisation dashboard at 'http://localhost:8501/'
+
+---
+## **Navigation in Streamlit Web App**
+
+The Streamlit dashboard has multiple sections:
+- Home → Overview of COVID-19 cases & statistics.
+- Cases Overview → Interactive graphs for case trends (current & predicted).
+- COVID-19 Wellness Center → Health tips and prevention measures.
+- Vaccination Info → Information about COVID-19 vaccines & booster shots.
 
 ---
 

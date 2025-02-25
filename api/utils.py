@@ -152,86 +152,14 @@ def predict_with_hybrid_model(data, days=21):
     return predictions
 
 
-# def save_all_predictions_to_db():
-#     """
-#     Check if dates are already predicted. If not, predict the values for:
-#     - Existing dates in the dataset using `predict_cases_for_existing_dates()`.
-#     - Future 21 days using `predict_with_hybrid_model()`.
-#     Save all predictions into the database.
-#     """
-#     # Check existing predictions in the database
-#     predicted_dates = set(PredictedCases.objects.values_list('date', flat=True))
-#     all_dates = sorted(CovidData.objects.values_list('date', flat=True))  # Sort dates chronologically
-#
-#     # Exclude the first 30 dates from the dataset for prediction
-#     if len(all_dates) > 30:
-#         current_dates = set(all_dates[30:])  # All dates except the first 30
-#     else:
-#         current_dates = set()
-#
-#     # Find dates that need predictions
-#     dates_to_predict = current_dates - predicted_dates
-#
-#     # If there are dates to predict, call `predict_cases_for_existing_dates`
-#     if dates_to_predict:
-#         print("Predicting cases for existing dates...")
-#         predictions = predict_cases_for_existing_dates()  # Predict for existing dates
-#
-#         # Save these predictions to the database
-#         for date, predicted_case in predictions.items():
-#             if date not in predicted_dates:  # Only save if not already in database
-#                 PredictedCases.objects.update_or_create(
-#                     date=date,
-#                     defaults={'predicted_cases': int(predicted_case)}
-#                 )
-#         print("Existing date predictions saved to database.")
-#     print("Checking if future predictions are needed...")
-#
-#     # Determine the start date for future predictions
-#     last_date = max(all_dates)
-#     future_start_date = last_date + timedelta(days=1)
-#
-#     # Generate the list of future dates to predict
-#     future_dates = [future_start_date + timedelta(days=i) for i in range(21)]
-#
-#     # Check if any of these future dates are already in the database
-#     existing_future_dates = set(
-#         PredictedCases.objects.filter(date__in=future_dates).values_list('date', flat=True)
-#     )
-#
-#     # If there are any missing future dates, predict and save them
-#     if set(future_dates) - existing_future_dates:
-#         print("Predicting cases for future 21 days...")
-#         recent_data = preprocess_data(window_size=30)  # Fetch and scale the recent 30 days
-#         future_predictions = predict_with_hybrid_model(recent_data, days=21)
-#
-#         # Save future predictions to the database
-#         for i, predicted_case in enumerate(future_predictions):
-#             predicted_date = future_start_date + timedelta(days=i)
-#             if predicted_date not in existing_future_dates:  # Only save if not already in database
-#                 PredictedCases.objects.update_or_create(
-#                     date=predicted_date,
-#                     defaults={'predicted_cases': int(predicted_case)}
-#                 )
-#         print("Future predictions saved to database.")
-#     else:
-#         print("Future predictions already exist in the database. No new predictions made.")
-#     print("All predictions have been saved successfully.")
-
-
-
 def save_all_predictions_to_db():
     """
-    Ensures that predictions are updated when new actual data is inserted.
-    - Deletes outdated predictions if new actual data is available.
-    - Predicts for missing past dates using `predict_cases_for_existing_dates()`.
-    - Predicts the next 21 future days using `predict_with_hybrid_model()`.
+    Check if dates are already predicted. If not, predict the values for:
+    - Existing dates in the dataset using `predict_cases_for_existing_dates()`.
+    - Future 21 days using `predict_with_hybrid_model()`.
+    Save all predictions into the database.
     """
-
-    # Find the most recent actual date in CovidData
-    last_actual_date = CovidData.objects.latest('date').date
-
-    # Check all existing predictions
+    # Check existing predictions in the database
     predicted_dates = set(PredictedCases.objects.values_list('date', flat=True))
     all_dates = sorted(CovidData.objects.values_list('date', flat=True))  # Sort dates chronologically
 
@@ -244,14 +172,10 @@ def save_all_predictions_to_db():
     # Find dates that need predictions
     dates_to_predict = current_dates - predicted_dates
 
-    # If new actual data is inserted, remove outdated predictions and recompute
-    PredictedCases.objects.filter(date__gte=last_actual_date).delete()
-    print(f"Outdated predictions from {last_actual_date} onward deleted.")
-
-    # If there are missing past predictions, recompute them
+    # If there are dates to predict, call `predict_cases_for_existing_dates`
     if dates_to_predict:
         print("Predicting cases for existing dates...")
-        predictions = predict_cases_for_existing_dates()  # Predict for missing past dates
+        predictions = predict_cases_for_existing_dates()  # Predict for existing dates
 
         # Save these predictions to the database
         for date, predicted_case in predictions.items():
@@ -261,11 +185,11 @@ def save_all_predictions_to_db():
                     defaults={'predicted_cases': int(predicted_case)}
                 )
         print("Existing date predictions saved to database.")
-
     print("Checking if future predictions are needed...")
 
     # Determine the start date for future predictions
-    future_start_date = last_actual_date + timedelta(days=1)
+    last_date = max(all_dates)
+    future_start_date = last_date + timedelta(days=1)
 
     # Generate the list of future dates to predict
     future_dates = [future_start_date + timedelta(days=i) for i in range(21)]
@@ -275,7 +199,7 @@ def save_all_predictions_to_db():
         PredictedCases.objects.filter(date__in=future_dates).values_list('date', flat=True)
     )
 
-    # If there are missing future predictions, recompute them
+    # If there are any missing future dates, predict and save them
     if set(future_dates) - existing_future_dates:
         print("Predicting cases for future 21 days...")
         recent_data = preprocess_data(window_size=30)  # Fetch and scale the recent 30 days
@@ -284,15 +208,91 @@ def save_all_predictions_to_db():
         # Save future predictions to the database
         for i, predicted_case in enumerate(future_predictions):
             predicted_date = future_start_date + timedelta(days=i)
-            PredictedCases.objects.update_or_create(
-                date=predicted_date,
-                defaults={'predicted_cases': int(predicted_case)}
-            )
+            if predicted_date not in existing_future_dates:  # Only save if not already in database
+                PredictedCases.objects.update_or_create(
+                    date=predicted_date,
+                    defaults={'predicted_cases': int(predicted_case)}
+                )
         print("Future predictions saved to database.")
     else:
         print("Future predictions already exist in the database. No new predictions made.")
-
     print("All predictions have been saved successfully.")
+
+
+
+# def save_all_predictions_to_db():
+#     """
+#     Ensures that predictions are updated when new actual data is inserted.
+#     - Deletes outdated predictions if new actual data is available.
+#     - Predicts for missing past dates using `predict_cases_for_existing_dates()`.
+#     - Predicts the next 21 future days using `predict_with_hybrid_model()`.
+#     """
+#
+#     # Find the most recent actual date in CovidData
+#     last_actual_date = CovidData.objects.latest('date').date
+#
+#     # Check all existing predictions
+#     predicted_dates = set(PredictedCases.objects.values_list('date', flat=True))
+#     all_dates = sorted(CovidData.objects.values_list('date', flat=True))  # Sort dates chronologically
+#
+#     # Exclude the first 30 dates from the dataset for prediction
+#     if len(all_dates) > 30:
+#         current_dates = set(all_dates[30:])  # All dates except the first 30
+#     else:
+#         current_dates = set()
+#
+#     # Find dates that need predictions
+#     dates_to_predict = current_dates - predicted_dates
+#
+#     # If new actual data is inserted, remove outdated predictions and recompute
+#     PredictedCases.objects.filter(date__gte=last_actual_date).delete()
+#     print(f"Outdated predictions from {last_actual_date} onward deleted.")
+#
+#     # If there are missing past predictions, recompute them
+#     if dates_to_predict:
+#         print("Predicting cases for existing dates...")
+#         predictions = predict_cases_for_existing_dates()  # Predict for missing past dates
+#
+#         # Save these predictions to the database
+#         for date, predicted_case in predictions.items():
+#             if date not in predicted_dates:  # Only save if not already in database
+#                 PredictedCases.objects.update_or_create(
+#                     date=date,
+#                     defaults={'predicted_cases': int(predicted_case)}
+#                 )
+#         print("Existing date predictions saved to database.")
+#
+#     print("Checking if future predictions are needed...")
+#
+#     # Determine the start date for future predictions
+#     future_start_date = last_actual_date + timedelta(days=1)
+#
+#     # Generate the list of future dates to predict
+#     future_dates = [future_start_date + timedelta(days=i) for i in range(21)]
+#
+#     # Check if any of these future dates are already in the database
+#     existing_future_dates = set(
+#         PredictedCases.objects.filter(date__in=future_dates).values_list('date', flat=True)
+#     )
+#
+#     # If there are missing future predictions, recompute them
+#     if set(future_dates) - existing_future_dates:
+#         print("Predicting cases for future 21 days...")
+#         recent_data = preprocess_data(window_size=30)  # Fetch and scale the recent 30 days
+#         future_predictions = predict_with_hybrid_model(recent_data, days=21)
+#
+#         # Save future predictions to the database
+#         for i, predicted_case in enumerate(future_predictions):
+#             predicted_date = future_start_date + timedelta(days=i)
+#             PredictedCases.objects.update_or_create(
+#                 date=predicted_date,
+#                 defaults={'predicted_cases': int(predicted_case)}
+#             )
+#         print("Future predictions saved to database.")
+#     else:
+#         print("Future predictions already exist in the database. No new predictions made.")
+#
+#     print("All predictions have been saved successfully.")
 
 
 def get_all_predictions_from_db():

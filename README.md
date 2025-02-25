@@ -5,7 +5,7 @@ To visualise predictions, it integrates a **Django backend (Django REST Framewo
 
 ---
 
-## 🚀 **Features**
+## **Features**
 
 - Predict COVID-19 cases using **hybrid models** (Random Forest + LSTM).
 - **Django REST API** for serving predictions.
@@ -14,7 +14,7 @@ To visualise predictions, it integrates a **Django backend (Django REST Framewo
 
 ---
 
-## 🛠 **Prerequisites**
+## **Prerequisites**
 
 Ensure you have the following installed:
 
@@ -39,7 +39,7 @@ Ensure you have the following installed:
 
 ---
 
-## 📦 **Installation**
+## **Installation**
 
 1. **Clone this repository:**
 
@@ -74,9 +74,9 @@ Ensure you have the following installed:
 
 ---
 
-## ▶️ **Running the Web App**
+## **Running the Web App**
 
-### **1️⃣ Start the Django backend**
+### **1 Start the Django backend**
 
 ```bash
 python manage.py runserver
@@ -84,7 +84,7 @@ python manage.py runserver
 
 This will start the API at `http://127.0.0.1:8000/`
 
-### **2️⃣ Run the Streamlit frontend**
+### **2 Run the Streamlit frontend**
 
 ```bash
 streamlit run streamlit/app.py
@@ -94,7 +94,7 @@ This will launch the visualization dashboard.
 
 ---
 
-## 🔗 **API Endpoints**
+## **API Endpoints**
 
 Here are the main API endpoints provided by the Django backend:
 

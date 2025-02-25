@@ -94,7 +94,7 @@ This will start the API at `http://127.0.0.1:8000/`
 streamlit run streamlit/app.py
 ```
 
-This will launch the visualization dashboard.
+This will launch the visualisation dashboard at 'http://localhost:8501/'
 
 ---
 

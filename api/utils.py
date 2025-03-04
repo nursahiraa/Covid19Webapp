@@ -47,8 +47,8 @@ def fetch_and_update_data():
 #     return data[::-1]  # Reverse to chronological order
 
 
-# def preprocess_data(window_size=30, max_rows=1716):
-def preprocess_data(window_size=30):
+# def preprocess_data(window_size=60, max_rows=1716):
+def preprocess_data(window_size=60):
     """
     Fetches recent data from the database, scales it using the pre-fitted scaler.
     """
@@ -82,9 +82,9 @@ def predict_cases_for_existing_dates():
     predictions = {}  # Dictionary to store predictions with corresponding dates
 
     # Predict for each date starting from the 30th record
-    for i in range(30, len(scaled_cases)):
+    for i in range(60, len(scaled_cases)):
         # Prepare input for Random Forest
-        rf_input = scaled_cases[i-30:i].reshape(1, -1)
+        rf_input = scaled_cases[i-60:i].reshape(1, -1)
 
         # Predict with Random Forest
         rf_prediction = rf_model.predict(rf_input)
@@ -121,8 +121,8 @@ def predict_with_hybrid_model(data, days=21):
     current_data = data.copy()
 
     for _ in range(days):
-        # Ensure data is 2D for Random Forest
-        rf_input = current_data.reshape(1, -1)
+        # Ensure Random Forest gets 60 days
+        rf_input = current_data[-60:].reshape(1, -1)
 
         # Predict with Random Forest
         rf_predictions = rf_model.predict(rf_input)  # Single prediction
@@ -164,8 +164,8 @@ def save_all_predictions_to_db():
     all_dates = sorted(CovidData.objects.values_list('date', flat=True))  # Sort dates chronologically
 
     # Exclude the first 30 dates from the dataset for prediction
-    if len(all_dates) > 30:
-        current_dates = set(all_dates[30:])  # All dates except the first 30
+    if len(all_dates) > 60:
+        current_dates = set(all_dates[60:])  # All dates except the first 30
     else:
         current_dates = set()
 
@@ -202,7 +202,7 @@ def save_all_predictions_to_db():
     # If there are any missing future dates, predict and save them
     if set(future_dates) - existing_future_dates:
         print("Predicting cases for future 21 days...")
-        recent_data = preprocess_data(window_size=30)  # Fetch and scale the recent 30 days
+        recent_data = preprocess_data(window_size=60)  # Fetch and scale the recent 30 days
         future_predictions = predict_with_hybrid_model(recent_data, days=21)
 
         # Save future predictions to the database
@@ -218,81 +218,6 @@ def save_all_predictions_to_db():
         print("Future predictions already exist in the database. No new predictions made.")
     print("All predictions have been saved successfully.")
 
-
-
-# def save_all_predictions_to_db():
-#     """
-#     Ensures that predictions are updated when new actual data is inserted.
-#     - Deletes outdated predictions if new actual data is available.
-#     - Predicts for missing past dates using `predict_cases_for_existing_dates()`.
-#     - Predicts the next 21 future days using `predict_with_hybrid_model()`.
-#     """
-#
-#     # Find the most recent actual date in CovidData
-#     last_actual_date = CovidData.objects.latest('date').date
-#
-#     # Check all existing predictions
-#     predicted_dates = set(PredictedCases.objects.values_list('date', flat=True))
-#     all_dates = sorted(CovidData.objects.values_list('date', flat=True))  # Sort dates chronologically
-#
-#     # Exclude the first 30 dates from the dataset for prediction
-#     if len(all_dates) > 30:
-#         current_dates = set(all_dates[30:])  # All dates except the first 30
-#     else:
-#         current_dates = set()
-#
-#     # Find dates that need predictions
-#     dates_to_predict = current_dates - predicted_dates
-#
-#     # If new actual data is inserted, remove outdated predictions and recompute
-#     PredictedCases.objects.filter(date__gte=last_actual_date).delete()
-#     print(f"Outdated predictions from {last_actual_date} onward deleted.")
-#
-#     # If there are missing past predictions, recompute them
-#     if dates_to_predict:
-#         print("Predicting cases for existing dates...")
-#         predictions = predict_cases_for_existing_dates()  # Predict for missing past dates
-#
-#         # Save these predictions to the database
-#         for date, predicted_case in predictions.items():
-#             if date not in predicted_dates:  # Only save if not already in database
-#                 PredictedCases.objects.update_or_create(
-#                     date=date,
-#                     defaults={'predicted_cases': int(predicted_case)}
-#                 )
-#         print("Existing date predictions saved to database.")
-#
-#     print("Checking if future predictions are needed...")
-#
-#     # Determine the start date for future predictions
-#     future_start_date = last_actual_date + timedelta(days=1)
-#
-#     # Generate the list of future dates to predict
-#     future_dates = [future_start_date + timedelta(days=i) for i in range(21)]
-#
-#     # Check if any of these future dates are already in the database
-#     existing_future_dates = set(
-#         PredictedCases.objects.filter(date__in=future_dates).values_list('date', flat=True)
-#     )
-#
-#     # If there are missing future predictions, recompute them
-#     if set(future_dates) - existing_future_dates:
-#         print("Predicting cases for future 21 days...")
-#         recent_data = preprocess_data(window_size=30)  # Fetch and scale the recent 30 days
-#         future_predictions = predict_with_hybrid_model(recent_data, days=21)
-#
-#         # Save future predictions to the database
-#         for i, predicted_case in enumerate(future_predictions):
-#             predicted_date = future_start_date + timedelta(days=i)
-#             PredictedCases.objects.update_or_create(
-#                 date=predicted_date,
-#                 defaults={'predicted_cases': int(predicted_case)}
-#             )
-#         print("Future predictions saved to database.")
-#     else:
-#         print("Future predictions already exist in the database. No new predictions made.")
-#
-#     print("All predictions have been saved successfully.")
 
 
 def get_all_predictions_from_db():
@@ -332,82 +257,81 @@ def visualize_predictions(predictions):
     plt.ylabel("Cases")
     plt.show()
 
-from sklearn.metrics import mean_squared_error
 
-
-def calculate_scaled_rmse_for_existing_dates():
-    """
-    Calculate RMSE in the scaled space for predicted cases against actual cases for existing dates in the dataset.
-    This matches the error computation during training.
-    :return: Scaled RMSE value
-    """
-    # Get predicted values
-    predictions = predict_cases_for_existing_dates()
-
-    # Fetch actual values for the same dates
-    actual_cases = list(CovidData.objects.filter(date__in=predictions.keys()).values_list('cases', flat=True))
-    predicted_cases = list(predictions.values())
-
-    # Transform actual and predicted values to the scaled space
-    scaled_actual = scaler.transform(pd.DataFrame(actual_cases, columns=["cases_new"]))
-    scaled_predicted = scaler.transform(pd.DataFrame(predicted_cases, columns=["cases_new"]))
-
-    # Compute RMSE in the scaled space
-    scaled_rmse = np.sqrt(mean_squared_error(scaled_actual, scaled_predicted))
-
-    print(f"Scaled RMSE: {scaled_rmse:.6f}")
-    return scaled_rmse
-
-def evaluate_rmse_on_train_test_split():
-    """
-    Evaluate scaled RMSE separately for:
-    - Training set (70% of original data).
-    - Test set (30% of original data).
-    """
-    total_rows = 1716  # Total rows in the dataset during training
-    train_rows = int(0.7 * total_rows)  # 70% training set
-    test_rows = total_rows - train_rows  # 30% test set
-
-    # Training set evaluation
-    train_scaled_cases = preprocess_data(window_size=train_rows)
-    scaled_actual_train = train_scaled_cases[30:]
-    rf_predictions_train = []
-    lstm_predictions_train = []
-
-    for i in range(30, len(train_scaled_cases)):
-        rf_input = train_scaled_cases[i-30:i].reshape(1, -1)
-        rf_predictions_train.append(rf_model.predict(rf_input)[0])
-
-        lstm_input = np.hstack([
-            train_scaled_cases[i-30:i].reshape(30, 1),
-            np.full((30, 1), rf_predictions_train[-1])
-        ]).reshape(1, 30, 2)
-
-        lstm_predictions_train.append(lstm_model.predict(lstm_input)[0][0])
-
-    scaled_rmse_train = np.sqrt(mean_squared_error(scaled_actual_train, lstm_predictions_train))
-    print(f"Scaled RMSE on Training Set: {scaled_rmse_train:.6f}")
-
-    # Test set evaluation
-    test_scaled_cases = preprocess_data(window_size=test_rows)
-    scaled_actual_test = test_scaled_cases[30:]
-    rf_predictions_test = []
-    lstm_predictions_test = []
-
-    for i in range(30, len(test_scaled_cases)):
-        rf_input = test_scaled_cases[i-30:i].reshape(1, -1)
-        rf_predictions_test.append(rf_model.predict(rf_input)[0])
-
-        lstm_input = np.hstack([
-            test_scaled_cases[i-30:i].reshape(30, 1),
-            np.full((30, 1), rf_predictions_test[-1])
-        ]).reshape(1, 30, 2)
-
-        lstm_predictions_test.append(lstm_model.predict(lstm_input)[0][0])
-
-    scaled_rmse_test = np.sqrt(mean_squared_error(scaled_actual_test, lstm_predictions_test))
-    print(f"Scaled RMSE on Test Set: {scaled_rmse_test:.6f}")
-
-    return scaled_rmse_train, scaled_rmse_test
+# from sklearn.metrics import mean_squared_error
+# def calculate_scaled_rmse_for_existing_dates():
+#     """
+#     Calculate RMSE in the scaled space for predicted cases against actual cases for existing dates in the dataset.
+#     This matches the error computation during training.
+#     :return: Scaled RMSE value
+#     """
+#     # Get predicted values
+#     predictions = predict_cases_for_existing_dates()
+#
+#     # Fetch actual values for the same dates
+#     actual_cases = list(CovidData.objects.filter(date__in=predictions.keys()).values_list('cases', flat=True))
+#     predicted_cases = list(predictions.values())
+#
+#     # Transform actual and predicted values to the scaled space
+#     scaled_actual = scaler.transform(pd.DataFrame(actual_cases, columns=["cases_new"]))
+#     scaled_predicted = scaler.transform(pd.DataFrame(predicted_cases, columns=["cases_new"]))
+#
+#     # Compute RMSE in the scaled space
+#     scaled_rmse = np.sqrt(mean_squared_error(scaled_actual, scaled_predicted))
+#
+#     print(f"Scaled RMSE: {scaled_rmse:.6f}")
+#     return scaled_rmse
+#
+# def evaluate_rmse_on_train_test_split():
+#     """
+#     Evaluate scaled RMSE separately for:
+#     - Training set (70% of original data).
+#     - Test set (30% of original data).
+#     """
+#     total_rows = 1716  # Total rows in the dataset during training
+#     train_rows = int(0.7 * total_rows)  # 70% training set
+#     test_rows = total_rows - train_rows  # 30% test set
+#
+#     # Training set evaluation
+#     train_scaled_cases = preprocess_data(window_size=train_rows)
+#     scaled_actual_train = train_scaled_cases[30:]
+#     rf_predictions_train = []
+#     lstm_predictions_train = []
+#
+#     for i in range(30, len(train_scaled_cases)):
+#         rf_input = train_scaled_cases[i-30:i].reshape(1, -1)
+#         rf_predictions_train.append(rf_model.predict(rf_input)[0])
+#
+#         lstm_input = np.hstack([
+#             train_scaled_cases[i-30:i].reshape(30, 1),
+#             np.full((30, 1), rf_predictions_train[-1])
+#         ]).reshape(1, 30, 2)
+#
+#         lstm_predictions_train.append(lstm_model.predict(lstm_input)[0][0])
+#
+#     scaled_rmse_train = np.sqrt(mean_squared_error(scaled_actual_train, lstm_predictions_train))
+#     print(f"Scaled RMSE on Training Set: {scaled_rmse_train:.6f}")
+#
+#     # Test set evaluation
+#     test_scaled_cases = preprocess_data(window_size=test_rows)
+#     scaled_actual_test = test_scaled_cases[30:]
+#     rf_predictions_test = []
+#     lstm_predictions_test = []
+#
+#     for i in range(30, len(test_scaled_cases)):
+#         rf_input = test_scaled_cases[i-30:i].reshape(1, -1)
+#         rf_predictions_test.append(rf_model.predict(rf_input)[0])
+#
+#         lstm_input = np.hstack([
+#             test_scaled_cases[i-30:i].reshape(30, 1),
+#             np.full((30, 1), rf_predictions_test[-1])
+#         ]).reshape(1, 30, 2)
+#
+#         lstm_predictions_test.append(lstm_model.predict(lstm_input)[0][0])
+#
+#     scaled_rmse_test = np.sqrt(mean_squared_error(scaled_actual_test, lstm_predictions_test))
+#     print(f"Scaled RMSE on Test Set: {scaled_rmse_test:.6f}")
+#
+#     return scaled_rmse_train, scaled_rmse_test
 
 
